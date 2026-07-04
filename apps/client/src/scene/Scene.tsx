@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Vector3 } from 'three';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import type { SimClientState } from '../net/simClientState';
 import { CheckpointMarkers, GoalMarker, Substrate } from './Substrate';
 import { SimAvatar } from './SimAvatar';
@@ -34,10 +35,12 @@ export function Scene({
 
   return (
     <>
-      <color attach="background" args={['#05060a']} />
-      <fog attach="fog" args={['#05060a', 12, 46]} />
-      <ambientLight intensity={0.28} />
-      <directionalLight position={[6, 12, 4]} intensity={0.9} castShadow />
+      <color attach="background" args={['#0a0e18']} />
+      <fog attach="fog" args={['#0a0e18', 18, 52]} />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[6, 12, 4]} intensity={1.25} castShadow />
+      {/* A soft fill from below-front so walls and floor don't read as flat black. */}
+      <hemisphereLight args={['#8ea6e8', '#0a0e18', 0.35]} />
 
       <Cosmos />
       {construct && <Substrate construct={construct} />}
@@ -76,6 +79,12 @@ export function Scene({
           />
         </>
       )}
+
+      {/* Soft cosmic glow — only the bright, emissive things (goal, Sim,
+          checkpoints, god-ray) bloom; the dark Substrate stays grounded. */}
+      <EffectComposer>
+        <Bloom intensity={0.7} luminanceThreshold={0.55} luminanceSmoothing={0.25} mipmapBlur />
+      </EffectComposer>
     </>
   );
 }

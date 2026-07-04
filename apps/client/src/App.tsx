@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { ACESFilmicToneMapping } from 'three';
 import { useSimSocket } from './net/useSimSocket';
 import { Scene } from './scene/Scene';
 import type { CameraMode } from './scene/cameraPlacement';
@@ -67,7 +68,11 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <Canvas shadows camera={{ position: [0, 7, 9], fov }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 7, 9], fov }}
+        gl={{ toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
+      >
         <Scene
           state={state}
           tickMs={TICK_MS}

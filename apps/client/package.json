@@ -16,6 +16,8 @@
     "@operant/core": "workspace:*",
     "@react-three/drei": "^10.0.1",
     "@react-three/fiber": "^9.0.0",
+    "@react-three/postprocessing": "^3.0.0",
+    "postprocessing": "^6.39.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.172.0"

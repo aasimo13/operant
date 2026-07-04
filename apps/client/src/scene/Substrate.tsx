@@ -24,13 +24,13 @@ export function Substrate({ construct }: { construct: ConstructView }): React.JS
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
         <planeGeometry args={[construct.width, construct.height]} />
-        <meshStandardMaterial color="#0a0f1f" />
+        <meshStandardMaterial color="#141c33" />
       </mesh>
 
       {wallPositions.map(([wx, wz], i) => (
         <mesh key={i} position={[wx, 0.5, wz]} castShadow receiveShadow>
           <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="#1a2340" />
+          <meshStandardMaterial color="#2b3a63" />
         </mesh>
       ))}
     </group>
