@@ -16,10 +16,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "demo": "tsx scripts/trainDemo.ts",
     "build": "tsup src/index.ts --format esm,cjs --dts --clean"
   },
   "devDependencies": {
     "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
   }
