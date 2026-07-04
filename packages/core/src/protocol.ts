@@ -26,11 +26,21 @@ export interface SimStateView {
 
 // ─── server → client ─────────────────────────────────────────────────────────
 
+/** One line in the Sim's "transcript of consciousness". */
+export interface NarrationLine {
+  /** The tick this line was occasioned by. */
+  readonly tick: number;
+  /** The line itself — first-person, from the Sim's point of view. */
+  readonly text: string;
+}
+
 export interface WelcomeMessage {
   readonly type: 'welcome';
   readonly construct: ConstructView;
   readonly state: SimStateView;
   readonly recent: TickRecord[];
+  /** Bounded recent narrator lines — not the whole lifetime (constraint 16). */
+  readonly transcript: NarrationLine[];
 }
 
 export interface TickMessage {
@@ -49,7 +59,13 @@ export interface HeatmapMessage {
   readonly values: Array<Array<number | null>>;
 }
 
-export type ServerMessage = WelcomeMessage | TickMessage | HeatmapMessage;
+/** A new narrator line — the Sim voicing (never driving) its experience. */
+export interface NarrationMessage {
+  readonly type: 'narration';
+  readonly line: NarrationLine;
+}
+
+export type ServerMessage = WelcomeMessage | TickMessage | HeatmapMessage | NarrationMessage;
 
 // ─── client → server ─────────────────────────────────────────────────────────
 

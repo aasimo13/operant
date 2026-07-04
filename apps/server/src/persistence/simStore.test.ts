@@ -1,25 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FIRST_CONSTRUCT } from '@operant/core';
-import { initialSimState, loadOrInitializeSim, type SimStore } from './simStore';
+import { initialSimState, loadOrInitializeSim } from './simStore';
 import type { PersistedSimState } from './types';
-
-/** An in-memory SimStore for testing the bootstrap logic without a database. */
-function fakeStore(initial: PersistedSimState | null = null): SimStore & {
-  saved: PersistedSimState | null;
-} {
-  let saved = initial;
-  return {
-    get saved() {
-      return saved;
-    },
-    init: vi.fn(async () => {}),
-    loadSim: vi.fn(async () => saved),
-    saveSim: vi.fn(async (state: PersistedSimState) => {
-      saved = state;
-    }),
-    close: vi.fn(async () => {}),
-  };
-}
+import { createFakeStore as fakeStore } from '../test/fakeStore';
 
 describe('initialSimState', () => {
   it('starts a brand-new Sim at the Construct’s start with an unlearned agent', () => {

@@ -7,6 +7,7 @@ import type { Cell } from './scene/layout';
 import { Hud } from './ui/Hud';
 import { ViewControls } from './ui/ViewControls';
 import { ProvidenceControls } from './ui/ProvidenceControls';
+import { TranscriptPanel } from './ui/TranscriptPanel';
 import './App.css';
 
 /** The Observer's live WebSocket endpoint (overridable per environment). */
@@ -53,6 +54,7 @@ export function App(): React.JSX.Element {
         />
       </Canvas>
       <Hud connected={connected} tickCount={state.sim?.tickCount ?? null} />
+      <TranscriptPanel lines={state.transcript} />
       <ProvidenceControls onReward={reward} onPunish={punish} />
       <ViewControls mode={cameraMode} fov={fov} onModeChange={setCameraMode} onFovChange={setFov} />
     </div>

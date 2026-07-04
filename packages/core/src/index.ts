@@ -49,6 +49,8 @@ export type {
   WelcomeMessage,
   TickMessage,
   HeatmapMessage,
+  NarrationLine,
+  NarrationMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,

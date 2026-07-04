@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import type { NarrationLine } from '@operant/core';
 import type { SimStore } from './simStore';
 import type { PostgresSimStoreConfig } from './postgresConfig';
 import { CANONICAL_SIM_ID, schemaDdl } from './schema';
@@ -44,6 +45,22 @@ export class PostgresSimStore implements SimStore {
        ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, updated_at = now()`,
       [CANONICAL_SIM_ID, JSON.stringify(state)],
     );
+  }
+
+  async appendTranscript(line: NarrationLine): Promise<void> {
+    await this.pool.query(`INSERT INTO "${this.schema}".transcript (tick, text) VALUES ($1, $2)`, [
+      line.tick,
+      line.text,
+    ]);
+  }
+
+  async recentTranscript(limit: number): Promise<NarrationLine[]> {
+    const { rows } = await this.pool.query<{ tick: number; text: string }>(
+      `SELECT tick, text FROM "${this.schema}".transcript ORDER BY id DESC LIMIT $1`,
+      [limit],
+    );
+    // Fetched newest-first; return oldest-first for chronological display.
+    return rows.reverse().map((r) => ({ tick: r.tick, text: r.text }));
   }
 
   async close(): Promise<void> {

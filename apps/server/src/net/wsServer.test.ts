@@ -1,21 +1,12 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { WebSocket } from 'ws';
 import { SimEngine, QLearningAgent, FIRST_CONSTRUCT, createRng } from '@operant/core';
 import { attachWsServer } from './wsServer';
 import { SimHost } from '../sim/simHost';
-import type { SimStore } from '../persistence/simStore';
 import type { ServerMessage } from './protocol';
-
-function fakeStore(): SimStore {
-  return {
-    init: vi.fn(async () => {}),
-    loadSim: vi.fn(async () => null),
-    saveSim: vi.fn(async () => {}),
-    close: vi.fn(async () => {}),
-  };
-}
+import { createFakeStore as fakeStore } from '../test/fakeStore';
 
 /** Collect incoming messages and hand them out one at a time as they arrive. */
 function messageStream(socket: WebSocket) {
@@ -51,7 +42,11 @@ describe('attachWsServer (integration)', () => {
       agent: new QLearningAgent({ epsilon: 0 }),
       rng: createRng(1),
     });
-    host = new SimHost({ engine, store: fakeStore() });
+    host = new SimHost({
+      engine,
+      store: fakeStore(),
+      narrationSource: { generate: async () => null },
+    });
     httpServer = createServer();
     attachWsServer({ server: httpServer, host });
     await new Promise<void>((resolve) => httpServer.listen(0, '127.0.0.1', resolve));

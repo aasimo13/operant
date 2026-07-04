@@ -20,6 +20,7 @@ const welcome: WelcomeMessage = {
   construct: { id: 'first', width: 2, height: 1, walls: [[false, false]] },
   state: { position: { x: 0, y: 0 }, goal: { x: 1, y: 0 }, tickCount: 3, epsilon: 0.3 },
   recent: [record(1), record(2), record(3)],
+  transcript: [{ tick: 2, text: 'a first thought' }],
 };
 
 describe('applyServerMessage', () => {
@@ -47,6 +48,24 @@ describe('applyServerMessage', () => {
     expect(s.lastRecord).toEqual(record(4));
     expect(s.recent.at(-1)).toEqual(record(4));
     expect(s.construct?.id).toBe('first'); // construct is retained across ticks
+  });
+
+  it('installs the transcript backfill from the welcome', () => {
+    const s = applyServerMessage(initialClientState, welcome);
+    expect(s.transcript).toEqual([{ tick: 2, text: 'a first thought' }]);
+  });
+
+  it('appends a narration line and keeps it across ticks', () => {
+    let s = applyServerMessage(initialClientState, welcome);
+    s = applyServerMessage(s, { type: 'narration', line: { tick: 4, text: 'that wall again' } });
+    expect(s.transcript.at(-1)).toEqual({ tick: 4, text: 'that wall again' });
+
+    s = applyServerMessage(s, {
+      type: 'tick',
+      state: { position: { x: 4, y: 0 }, goal: { x: 1, y: 0 }, tickCount: 4, epsilon: 0.29 },
+      record: record(4),
+    });
+    expect(s.transcript.at(-1)).toEqual({ tick: 4, text: 'that wall again' }); // retained
   });
 
   it('stores a heatmap message and keeps it across ticks', () => {

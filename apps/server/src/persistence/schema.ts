@@ -20,5 +20,11 @@ export function schemaDdl(schema: string): string {
       state      jsonb       NOT NULL,
       updated_at timestamptz NOT NULL DEFAULT now()
     );
+    CREATE TABLE IF NOT EXISTS "${schema}".transcript (
+      id         bigserial   PRIMARY KEY,
+      tick       integer     NOT NULL,
+      text       text        NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
   `;
 }

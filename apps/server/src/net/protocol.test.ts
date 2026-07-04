@@ -42,11 +42,13 @@ describe('buildWelcome', () => {
   it('bundles the construct, current state, and bounded recent backfill', () => {
     const e = engine();
     const r1 = e.tick();
-    const welcome = buildWelcome(e, [r1]);
+    const transcript = [{ tick: 1, text: 'a wall' }];
+    const welcome = buildWelcome(e, [r1], transcript);
     expect(welcome.type).toBe('welcome');
     expect(welcome.construct.id).toBe('view');
     expect(welcome.state.tickCount).toBe(1);
     expect(welcome.recent).toEqual([r1]);
+    expect(welcome.transcript).toEqual(transcript);
   });
 });
 

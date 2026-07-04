@@ -1,4 +1,4 @@
-import { QLearningAgent, type Construct } from '@operant/core';
+import { QLearningAgent, type Construct, type NarrationLine } from '@operant/core';
 import type { PersistedSimState } from './types';
 
 /**
@@ -14,6 +14,10 @@ export interface SimStore {
   loadSim(): Promise<PersistedSimState | null>;
   /** Persist the single canonical Sim state (upsert — one row, ever). */
   saveSim(state: PersistedSimState): Promise<void>;
+  /** Append one narrator line to the permanent transcript (never erased). */
+  appendTranscript(line: NarrationLine): Promise<void>;
+  /** The most recent `limit` transcript lines, oldest first (for backfill). */
+  recentTranscript(limit: number): Promise<NarrationLine[]>;
   /** Release resources (connection pool). */
   close(): Promise<void>;
 }

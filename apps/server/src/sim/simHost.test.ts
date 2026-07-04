@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   SimEngine,
   QLearningAgent,
@@ -8,27 +8,15 @@ import {
   ACTIONS,
 } from '@operant/core';
 import { SimHost, createSimHost } from './simHost';
-import type { SimStore } from '../persistence/simStore';
 import { initialSimState } from '../persistence/simStore';
 import type { PersistedSimState } from '../persistence/types';
-import type { TickMessage } from '../net/protocol';
+import type { ServerMessage } from '../net/protocol';
+import type { NarrationSource } from '../narrator/source';
+import { createFakeStore as fakeStore } from '../test/fakeStore';
 
-function fakeStore(
-  seed: PersistedSimState | null = null,
-): SimStore & { saved: PersistedSimState | null } {
-  let saved = seed;
-  return {
-    get saved() {
-      return saved;
-    },
-    init: vi.fn(async () => {}),
-    loadSim: vi.fn(async () => saved),
-    saveSim: vi.fn(async (s: PersistedSimState) => {
-      saved = s;
-    }),
-    close: vi.fn(async () => {}),
-  };
-}
+/** A narration source that says nothing, so tick tests aren't polluted by lines. */
+const silent: NarrationSource = { generate: async () => null };
+const flush = () => new Promise((r) => setTimeout(r, 0));
 
 function makeHost(rngSeed = 1, position = FIRST_CONSTRUCT.start) {
   const engine = new SimEngine({
@@ -38,7 +26,7 @@ function makeHost(rngSeed = 1, position = FIRST_CONSTRUCT.start) {
     position,
   });
   const store = fakeStore();
-  const host = new SimHost({ engine, store, recentLimit: 3 });
+  const host = new SimHost({ engine, store, recentLimit: 3, narrationSource: silent });
   return { engine, store, host };
 }
 
@@ -54,13 +42,14 @@ describe('SimHost.tick', () => {
 
   it('broadcasts a tick message to subscribers, and stops after unsubscribe', async () => {
     const { host } = makeHost();
-    const received: TickMessage[] = [];
+    const received: ServerMessage[] = [];
     const unsubscribe = host.subscribe((m) => received.push(m));
 
     const record = await host.tick();
     expect(received).toHaveLength(1);
-    expect(received[0]!.type).toBe('tick');
-    expect(received[0]!.record).toEqual(record);
+    const first = received[0]!;
+    expect(first.type).toBe('tick');
+    if (first.type === 'tick') expect(first.record).toEqual(record);
 
     unsubscribe();
     await host.tick();
@@ -120,6 +109,48 @@ describe('SimHost recent backfill and welcome', () => {
     expect(heatmap.type).toBe('heatmap');
     expect(heatmap.values).toHaveLength(FIRST_CONSTRUCT.height);
     expect(heatmap.values[0]).toHaveLength(FIRST_CONSTRUCT.width);
+  });
+});
+
+describe('SimHost narrator wiring', () => {
+  it('narrates a notable event, broadcasting and permanently recording the line', async () => {
+    const engine = new SimEngine({
+      construct: FIRST_CONSTRUCT,
+      agent: new QLearningAgent({ epsilon: 0 }),
+      rng: createRng(1),
+    });
+    const store = fakeStore();
+    const host = new SimHost({
+      engine,
+      store,
+      narrationSource: { generate: async () => 'a hand I cannot see' },
+    });
+    const messages: ServerMessage[] = [];
+    host.subscribe((m) => messages.push(m));
+
+    host.enqueueInput({ type: 'providence', kind: 'punish' }); // a notable event
+    await host.tick();
+    await flush(); // let the async narration resolve
+
+    const narration = messages.find((m) => m.type === 'narration');
+    expect(narration).toBeDefined();
+    expect(store.transcript).toContainEqual({ tick: 1, text: 'a hand I cannot see' });
+    expect(host.transcript()).toContainEqual({ tick: 1, text: 'a hand I cannot see' });
+  });
+
+  it('includes the recent transcript in the welcome payload', async () => {
+    const engine = new SimEngine({
+      construct: FIRST_CONSTRUCT,
+      agent: new QLearningAgent({ epsilon: 0 }),
+      rng: createRng(1),
+    });
+    const host = new SimHost({
+      engine,
+      store: fakeStore(),
+      transcriptSeed: [{ tick: 10, text: 'an older thought' }],
+      narrationSource: silent,
+    });
+    expect(host.welcomeFor().transcript).toEqual([{ tick: 10, text: 'an older thought' }]);
   });
 });
 

@@ -4,6 +4,7 @@ import type {
   Construct,
   ConstructView,
   HeatmapMessage,
+  NarrationLine,
   SimEngine,
   SimStateView,
   TickMessage,
@@ -29,6 +30,8 @@ export type {
   WelcomeMessage,
   TickMessage,
   HeatmapMessage,
+  NarrationLine,
+  NarrationMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
@@ -59,12 +62,17 @@ export function buildStateView(engine: SimEngine): SimStateView {
   };
 }
 
-export function buildWelcome(engine: SimEngine, recent: TickRecord[]): WelcomeMessage {
+export function buildWelcome(
+  engine: SimEngine,
+  recent: TickRecord[],
+  transcript: NarrationLine[],
+): WelcomeMessage {
   return {
     type: 'welcome',
     construct: buildConstructView(engine.construct),
     state: buildStateView(engine),
     recent,
+    transcript,
   };
 }
 

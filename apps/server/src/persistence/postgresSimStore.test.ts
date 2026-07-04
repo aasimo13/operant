@@ -55,7 +55,7 @@ describeDb('PostgresSimStore (integration, real Postgres)', () => {
   });
 
   beforeEach(async () => {
-    await admin.query(`TRUNCATE "${TEST_SCHEMA}".sim_state`);
+    await admin.query(`TRUNCATE "${TEST_SCHEMA}".sim_state, "${TEST_SCHEMA}".transcript`);
   });
 
   it('returns null before any Sim has been written', async () => {
@@ -90,6 +90,19 @@ describeDb('PostgresSimStore (integration, real Postgres)', () => {
     } finally {
       await rebooted.close();
     }
+  });
+
+  it('appends transcript lines permanently and returns a bounded recent window', async () => {
+    for (let i = 1; i <= 5; i++) {
+      await store.appendTranscript({ tick: i, text: `line ${i}` });
+    }
+    const recent = await store.recentTranscript(3);
+    // Oldest-first, only the newest 3.
+    expect(recent).toEqual([
+      { tick: 3, text: 'line 3' },
+      { tick: 4, text: 'line 4' },
+      { tick: 5, text: 'line 5' },
+    ]);
   });
 
   it('initializes once, then rehydrates without ever overwriting (constraints 1 & 2)', async () => {
