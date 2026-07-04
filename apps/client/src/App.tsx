@@ -9,6 +9,7 @@ import { ViewControls } from './ui/ViewControls';
 import { ProvidenceControls } from './ui/ProvidenceControls';
 import { TranscriptPanel } from './ui/TranscriptPanel';
 import { WearDebug } from './ui/WearDebug';
+import { Landing } from './ui/Landing';
 import './App.css';
 
 /** The Observer's live WebSocket endpoint (overridable per environment). */
@@ -24,6 +25,7 @@ const TICK_MS = 1500;
  */
 export function App(): React.JSX.Element {
   const { state, connected, send } = useSimSocket(WS_URL);
+  const [entered, setEntered] = useState(false);
   const [cameraMode, setCameraMode] = useState<CameraMode>('third');
   const [fov, setFov] = useState(60);
 
@@ -42,6 +44,10 @@ export function App(): React.JSX.Element {
     const id = setInterval(() => send({ type: 'requestHeatmap' }), 1000);
     return () => clearInterval(id);
   }, [cameraMode, send]);
+
+  if (!entered) {
+    return <Landing onEnter={() => setEntered(true)} />;
+  }
 
   return (
     <div className="app">
