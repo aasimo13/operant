@@ -1,0 +1,23 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  /* The Substrate floats in darkness — a shrine suspended in the void. */
+  background: #05060a;
+  color: #d7dbe6;
+  overflow: hidden;
+}
