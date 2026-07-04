@@ -96,6 +96,21 @@ describe('attachWsServer (integration)', () => {
     client.close();
   });
 
+  it('answers a heatmap request with a heatmap message', async () => {
+    const client = new WebSocket(url);
+    const next = messageStream(client);
+    await new Promise((resolve) => client.on('open', resolve));
+    await next(); // welcome
+
+    client.send(JSON.stringify({ type: 'requestHeatmap' }));
+    const reply = await next();
+    expect(reply.type).toBe('heatmap');
+    if (reply.type === 'heatmap') {
+      expect(reply.values.length).toBeGreaterThan(0);
+    }
+    client.close();
+  });
+
   it('ignores malformed client frames without crashing', async () => {
     const client = new WebSocket(url);
     const next = messageStream(client);

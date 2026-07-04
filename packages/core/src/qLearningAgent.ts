@@ -53,9 +53,13 @@ export class QLearningAgent {
     return this.currentEpsilon;
   }
 
-  /** Q-values for a state (zeros if never visited). Read-only view. */
+  /**
+   * Q-values for a state (zeros if never visited). Read-only and
+   * non-mutating — reading an unvisited state does NOT create a table row, so
+   * introspection (e.g. the heatmap) never bloats the persisted Q-table.
+   */
   getQValues(stateKey: string): readonly number[] {
-    return this.rowFor(stateKey);
+    return this.qTable.get(stateKey) ?? new Array<number>(ACTION_COUNT).fill(0);
   }
 
   /**
@@ -83,8 +87,9 @@ export class QLearningAgent {
   update(stateKey: string, action: Action, reward: number, nextStateKey: string): void {
     const actionIndex = ACTIONS.indexOf(action);
     const row = this.rowFor(stateKey);
-    const nextRow = this.rowFor(nextStateKey);
-    const bestNext = Math.max(...nextRow);
+    // Non-mutating peek for the bootstrap term: don't create a row for the
+    // look-ahead state, only for the state actually being written.
+    const bestNext = Math.max(...this.getQValues(nextStateKey));
     const current = row[actionIndex]!;
     row[actionIndex] = current + this.alpha * (reward + this.gamma * bestNext - current);
   }

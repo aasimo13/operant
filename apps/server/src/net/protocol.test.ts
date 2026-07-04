@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { SimEngine, QLearningAgent, parseConstruct, createRng } from '@operant/core';
-import { buildConstructView, buildStateView, buildTickMessage, buildWelcome } from './protocol';
+import {
+  buildConstructView,
+  buildHeatmap,
+  buildStateView,
+  buildTickMessage,
+  buildWelcome,
+} from './protocol';
 
 const construct = parseConstruct('view', ['S.#', '.#.', '..G']);
 
@@ -52,5 +58,17 @@ describe('buildTickMessage', () => {
     expect(msg.type).toBe('tick');
     expect(msg.record).toEqual(record);
     expect(msg.state.tickCount).toBe(1);
+  });
+});
+
+describe('buildHeatmap', () => {
+  it('carries a best-action value per cell (null for walls), matching the grid', () => {
+    const e = engine();
+    e.tick();
+    const msg = buildHeatmap(e);
+    expect(msg.type).toBe('heatmap');
+    expect(msg.values).toHaveLength(construct.height);
+    expect(msg.values[0]).toHaveLength(construct.width);
+    expect(msg.values[0]![2]).toBeNull(); // wall at (2,0)
   });
 });

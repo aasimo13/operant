@@ -20,6 +20,10 @@ describe('parseClientMessage', () => {
     });
   });
 
+  it('accepts a heatmap request', () => {
+    expect(parseClientMessage('{"type":"requestHeatmap"}')).toEqual({ type: 'requestHeatmap' });
+  });
+
   it('rejects malformed JSON', () => {
     expect(parseClientMessage('not json')).toBeNull();
   });

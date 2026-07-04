@@ -5,6 +5,7 @@ import { GoalMarker, Substrate } from './Substrate';
 import { SimAvatar } from './SimAvatar';
 import { CameraRig } from './CameraRig';
 import { InteractionPlane } from './InteractionPlane';
+import { HeatmapOverlay } from './HeatmapOverlay';
 import type { CameraMode } from './cameraPlacement';
 import type { Cell } from './layout';
 
@@ -38,6 +39,9 @@ export function Scene({
       <directionalLight position={[6, 12, 4]} intensity={1.1} castShadow />
 
       {construct && <Substrate construct={construct} />}
+      {construct && cameraMode === 'god' && state.heatmap && (
+        <HeatmapOverlay construct={construct} values={state.heatmap} />
+      )}
       {construct && <InteractionPlane construct={construct} onIntervene={onIntervene} />}
       {construct && sim && (
         <GoalMarker goal={sim.goal} width={construct.width} height={construct.height} />

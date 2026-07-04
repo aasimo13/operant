@@ -39,14 +39,19 @@ export type { SimEngineOptions, TickRecord, RelocateGoal } from './simEngine';
 export { createRng } from './rng';
 export type { Rng } from './rng';
 
+// Value-landscape heatmap (god view).
+export { bestActionValues } from './heatmap';
+
 // Shared WebSocket wire-protocol types (builders/validation live in the server).
 export type {
   ConstructView,
   SimStateView,
   WelcomeMessage,
   TickMessage,
+  HeatmapMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
+  HeatmapRequestMessage,
   ClientMessage,
 } from './protocol';

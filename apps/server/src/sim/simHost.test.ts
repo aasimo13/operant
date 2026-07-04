@@ -112,6 +112,15 @@ describe('SimHost recent backfill and welcome', () => {
     expect(welcome.state.tickCount).toBe(1);
     expect(welcome.recent).toHaveLength(1);
   });
+
+  it('builds a heatmap sized to the Construct', async () => {
+    const { host } = makeHost();
+    await host.tick();
+    const heatmap = host.heatmap();
+    expect(heatmap.type).toBe('heatmap');
+    expect(heatmap.values).toHaveLength(FIRST_CONSTRUCT.height);
+    expect(heatmap.values[0]).toHaveLength(FIRST_CONSTRUCT.width);
+  });
 });
 
 describe('createSimHost (boot / rehydration)', () => {

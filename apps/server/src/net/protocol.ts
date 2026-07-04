@@ -1,7 +1,9 @@
+import { bestActionValues } from '@operant/core';
 import type {
   ClientMessage,
   Construct,
   ConstructView,
+  HeatmapMessage,
   SimEngine,
   SimStateView,
   TickMessage,
@@ -26,9 +28,11 @@ export type {
   SimStateView,
   WelcomeMessage,
   TickMessage,
+  HeatmapMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
+  HeatmapRequestMessage,
   ClientMessage,
 } from '@operant/core';
 
@@ -68,6 +72,10 @@ export function buildTickMessage(engine: SimEngine, record: TickRecord): TickMes
   return { type: 'tick', state: buildStateView(engine), record };
 }
 
+export function buildHeatmap(engine: SimEngine): HeatmapMessage {
+  return { type: 'heatmap', values: bestActionValues(engine.construct, engine.agent) };
+}
+
 // ─── validation ──────────────────────────────────────────────────────────────
 
 function isFiniteNumber(value: unknown): value is number {
@@ -98,6 +106,10 @@ export function parseClientMessage(raw: string): ClientMessage | null {
     if (isFiniteNumber(pos.x) && isFiniteNumber(pos.y)) {
       return { type: 'intervene', position: { x: pos.x, y: pos.y } };
     }
+  }
+
+  if (msg.type === 'requestHeatmap') {
+    return { type: 'requestHeatmap' };
   }
 
   return null;

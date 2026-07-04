@@ -49,6 +49,25 @@ describe('applyServerMessage', () => {
     expect(s.construct?.id).toBe('first'); // construct is retained across ticks
   });
 
+  it('stores a heatmap message and keeps it across ticks', () => {
+    let s = applyServerMessage(initialClientState, welcome);
+    s = applyServerMessage(s, { type: 'heatmap', values: [[1, null, 3]] });
+    expect(s.heatmap).toEqual([[1, null, 3]]);
+
+    s = applyServerMessage(s, {
+      type: 'tick',
+      state: { position: { x: 4, y: 0 }, goal: { x: 1, y: 0 }, tickCount: 4, epsilon: 0.29 },
+      record: record(4),
+    });
+    expect(s.heatmap).toEqual([[1, null, 3]]); // retained across the tick
+  });
+
+  it('clears any stale heatmap on a fresh welcome (reconnect)', () => {
+    let s = applyServerMessage(initialClientState, { type: 'heatmap', values: [[1]] });
+    s = applyServerMessage(s, welcome);
+    expect(s.heatmap).toBeNull();
+  });
+
   it('bounds the recent buffer so it cannot grow without limit', () => {
     let s = applyServerMessage(initialClientState, welcome);
     for (let t = 4; t < 400; t++) {

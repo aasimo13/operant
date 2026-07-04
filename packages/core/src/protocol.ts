@@ -39,7 +39,17 @@ export interface TickMessage {
   readonly record: TickRecord;
 }
 
-export type ServerMessage = WelcomeMessage | TickMessage;
+/**
+ * The Sim's value landscape for the god-view heatmap: best-action Q per open
+ * cell, `null` for walls, as `values[y][x]`. Sent on request (not every tick)
+ * so it only costs bandwidth for Observers actually looking at it.
+ */
+export interface HeatmapMessage {
+  readonly type: 'heatmap';
+  readonly values: Array<Array<number | null>>;
+}
+
+export type ServerMessage = WelcomeMessage | TickMessage | HeatmapMessage;
 
 // ─── client → server ─────────────────────────────────────────────────────────
 
@@ -55,4 +65,9 @@ export interface InterveneMessage {
   readonly position: GridPosition;
 }
 
-export type ClientMessage = ProvidenceMessage | InterveneMessage;
+/** Ask the host for the current value-landscape heatmap (god view only). */
+export interface HeatmapRequestMessage {
+  readonly type: 'requestHeatmap';
+}
+
+export type ClientMessage = ProvidenceMessage | InterveneMessage | HeatmapRequestMessage;

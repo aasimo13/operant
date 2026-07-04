@@ -6,9 +6,11 @@ import {
   type TickRecord,
 } from '@operant/core';
 import {
+  buildHeatmap,
   buildTickMessage,
   buildWelcome,
   type ClientMessage,
+  type HeatmapMessage,
   type TickMessage,
   type WelcomeMessage,
 } from '../net/protocol';
@@ -84,6 +86,11 @@ export class SimHost {
     return buildWelcome(this.engine, this.recent());
   }
 
+  /** The current value-landscape heatmap (for god-view Observers, on request). */
+  heatmap(): HeatmapMessage {
+    return buildHeatmap(this.engine);
+  }
+
   /**
    * Advance the Sim one decision step: drain queued inputs, step + learn,
    * persist, and broadcast. Persistence happens every tick — trivial load at
@@ -129,9 +136,11 @@ export class SimHost {
     for (const input of this.inputQueue) {
       if (input.type === 'intervene') {
         this.engine.intervene(input.position);
-      } else {
+      } else if (input.type === 'providence') {
         bonus += input.kind === 'reward' ? this.providenceReward : this.providencePunish;
       }
+      // requestHeatmap is a read-only query handled at the WebSocket layer and
+      // never enqueued; ignored here defensively.
     }
     this.inputQueue.length = 0;
     return bonus;

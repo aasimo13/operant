@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useSimSocket } from './net/useSimSocket';
 import { Scene } from './scene/Scene';
@@ -31,6 +31,15 @@ export function App(): React.JSX.Element {
     (cell: Cell) => send({ type: 'intervene', position: cell }),
     [send],
   );
+
+  // While in god view, poll the host for the value-landscape heatmap. It only
+  // costs bandwidth when someone is actually looking at it.
+  useEffect(() => {
+    if (cameraMode !== 'god') return;
+    send({ type: 'requestHeatmap' });
+    const id = setInterval(() => send({ type: 'requestHeatmap' }), 1000);
+    return () => clearInterval(id);
+  }, [cameraMode, send]);
 
   return (
     <div className="app">
