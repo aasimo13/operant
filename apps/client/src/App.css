@@ -37,6 +37,51 @@
   text-transform: uppercase;
 }
 
+/* Providence — reward/punish, top-right, framed as an external force. */
+.providence {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+.providence__btn {
+  padding: 0.55rem 1.4rem;
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #aeb6cc;
+  background: rgba(12, 18, 34, 0.6);
+  border: 1px solid rgba(120, 150, 220, 0.25);
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.providence__btn:focus-visible {
+  outline: 2px solid #6b8cff;
+  outline-offset: 2px;
+}
+
+.providence__btn--reward:hover {
+  color: #eaf6ff;
+  border-color: #6bd0ff;
+  background: rgba(43, 160, 255, 0.18);
+}
+
+.providence__btn--punish:hover {
+  color: #ffe9e9;
+  border-color: #ff6b7c;
+  background: rgba(255, 43, 66, 0.16);
+}
+
 /* Viewpoint controls — observatory instruments, bottom-centered. */
 .controls {
   position: absolute;

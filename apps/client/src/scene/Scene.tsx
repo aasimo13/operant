@@ -4,7 +4,9 @@ import type { SimClientState } from '../net/simClientState';
 import { GoalMarker, Substrate } from './Substrate';
 import { SimAvatar } from './SimAvatar';
 import { CameraRig } from './CameraRig';
+import { InteractionPlane } from './InteractionPlane';
 import type { CameraMode } from './cameraPlacement';
+import type { Cell } from './layout';
 
 /**
  * The 3D scene: the Substrate, the goal, the Sim, and the camera rig, lit
@@ -16,11 +18,13 @@ export function Scene({
   tickMs,
   cameraMode,
   fov,
+  onIntervene,
 }: {
   state: SimClientState;
   tickMs: number;
   cameraMode: CameraMode;
   fov: number;
+  onIntervene: (cell: Cell) => void;
 }): React.JSX.Element {
   const { construct, sim, lastRecord } = state;
   // The Sim's live world position, written by SimAvatar and read by CameraRig.
@@ -34,6 +38,7 @@ export function Scene({
       <directionalLight position={[6, 12, 4]} intensity={1.1} castShadow />
 
       {construct && <Substrate construct={construct} />}
+      {construct && <InteractionPlane construct={construct} onIntervene={onIntervene} />}
       {construct && sim && (
         <GoalMarker goal={sim.goal} width={construct.width} height={construct.height} />
       )}
