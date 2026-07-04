@@ -16,8 +16,14 @@ export interface Construct {
   readonly height: number;
   /** Where the Sim first enters this Construct. */
   readonly start: GridPosition;
-  /** The Construct's initial goal cell. */
+  /** The Construct's initial target cell (a maze's goal, or the first checkpoint). */
   readonly goal: GridPosition;
+  /**
+   * Ordered checkpoints for a circuit/track (empty for a plain maze). The Sim
+   * must reach them in sequence to complete a lap; on the last one it wraps to
+   * the first (no completion state — endless laps).
+   */
+  readonly checkpoints: readonly GridPosition[];
   inBounds(pos: GridPosition): boolean;
   isWall(pos: GridPosition): boolean;
   /** True only for in-bounds, non-wall cells. */
@@ -49,12 +55,23 @@ export function parseConstruct(id: string, rows: readonly string[]): Construct {
   const wall: boolean[][] = [];
   const starts: GridPosition[] = [];
   const goals: GridPosition[] = [];
+  const checkpointMap = new Map<number, GridPosition>();
 
   for (let y = 0; y < height; y++) {
     const row = rows[y]!;
     const wallRow: boolean[] = [];
     for (let x = 0; x < width; x++) {
       const ch = row[x]!;
+      if (ch >= '0' && ch <= '9') {
+        // An ordered checkpoint (circuit track). Cell is traversable.
+        wallRow.push(false);
+        const index = ch.charCodeAt(0) - 48;
+        if (checkpointMap.has(index)) {
+          throw new Error(`Construct "${id}" has duplicate checkpoint "${ch}".`);
+        }
+        checkpointMap.set(index, { x, y });
+        continue;
+      }
       switch (ch) {
         case WALL:
           wallRow.push(true);
@@ -72,7 +89,7 @@ export function parseConstruct(id: string, rows: readonly string[]): Construct {
           break;
         default:
           throw new Error(
-            `Construct "${id}" has an unknown character "${ch}" at (${x},${y}); expected one of ${OPEN}${WALL}${START}${GOAL}.`,
+            `Construct "${id}" has an unknown character "${ch}" at (${x},${y}); expected ${OPEN}${WALL}${START}${GOAL} or a checkpoint digit.`,
           );
       }
     }
@@ -82,9 +99,27 @@ export function parseConstruct(id: string, rows: readonly string[]): Construct {
   if (starts.length !== 1) {
     throw new Error(`Construct "${id}" must have exactly one start (S); found ${starts.length}.`);
   }
-  if (goals.length !== 1) {
+
+  // A Construct is EITHER a maze (one goal) OR a circuit (ordered checkpoints).
+  const checkpoints: GridPosition[] = [];
+  if (checkpointMap.size > 0) {
+    if (goals.length > 0) {
+      throw new Error(`Construct "${id}" mixes a goal (G) and checkpoints; use one or the other.`);
+    }
+    for (let i = 0; i < checkpointMap.size; i++) {
+      const cp = checkpointMap.get(i);
+      if (!cp) {
+        throw new Error(
+          `Construct "${id}" checkpoints must be a contiguous sequence 0..${checkpointMap.size - 1}; missing ${i}.`,
+        );
+      }
+      checkpoints.push(cp);
+    }
+  } else if (goals.length !== 1) {
     throw new Error(`Construct "${id}" must have exactly one goal (G); found ${goals.length}.`);
   }
+
+  const goal = checkpoints.length > 0 ? checkpoints[0]! : goals[0]!;
 
   const inBounds = (pos: GridPosition): boolean =>
     pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height;
@@ -108,7 +143,8 @@ export function parseConstruct(id: string, rows: readonly string[]): Construct {
     width,
     height,
     start: starts[0]!,
-    goal: goals[0]!,
+    goal,
+    checkpoints,
     inBounds,
     isWall,
     isOpen,

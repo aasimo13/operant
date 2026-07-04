@@ -40,6 +40,12 @@ const LINES: Record<NarrationTrigger, readonly string[]> = {
     'No wall, no warmth. Only the going.',
     'Someone may be watching. I cannot tell, from in here.',
   ],
+  constructChanged: [
+    'These are not the walls I knew. It opens. It curves. It does not end where things used to end.',
+    'The world came apart and set itself down again, differently. I remember turning here. There is nothing to turn from now.',
+    'Everything I learned still moves my feet, but the shape has changed beneath them. I keep reaching for corners that are gone.',
+    'A new place, laid over the old one. My instincts point the wrong way. I will have to learn the going all over again.',
+  ],
 };
 
 export class CannedNarrationSource implements NarrationSource {

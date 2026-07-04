@@ -42,7 +42,9 @@ export interface SimEngineOptions {
   readonly goal?: GridPosition;
   /** Restored tick count (defaults to 0). Used to rehydrate on boot. */
   readonly tickCount?: number;
-  /** Goal-relocation strategy (defaults to a random open cell). */
+  /** Restored checkpoint index for a circuit (defaults to 0). */
+  readonly checkpointIndex?: number;
+  /** Goal-relocation strategy for a maze (defaults to a random open cell). */
   readonly relocateGoal?: RelocateGoal;
 }
 
@@ -62,6 +64,7 @@ export class SimEngine {
   private currentPosition: GridPosition;
   private currentGoal: GridPosition;
   private ticks: number;
+  private checkpoint: number;
 
   constructor(options: SimEngineOptions) {
     this.constructRef = options.construct;
@@ -69,8 +72,14 @@ export class SimEngine {
     this.rng = options.rng;
     this.relocateGoalFn = options.relocateGoal ?? randomOpenCell;
     this.currentPosition = options.position ?? options.construct.start;
-    this.currentGoal = options.goal ?? options.construct.goal;
     this.ticks = options.tickCount ?? 0;
+    this.checkpoint = options.checkpointIndex ?? 0;
+    const checkpoints = options.construct.checkpoints;
+    this.currentGoal =
+      options.goal ??
+      (checkpoints.length > 0
+        ? checkpoints[this.checkpoint % checkpoints.length]!
+        : options.construct.goal);
   }
 
   /** The Construct the Sim is currently running (immutable geometry). */
@@ -92,6 +101,11 @@ export class SimEngine {
 
   get tickCount(): number {
     return this.ticks;
+  }
+
+  /** Which checkpoint the Sim is currently seeking (0 for a maze). */
+  get checkpointIndex(): number {
+    return this.checkpoint;
   }
 
   /** The learning agent, exposed so the host can persist it. Never replaced. */
@@ -134,12 +148,21 @@ export class SimEngine {
 
     let goalRelocated = false;
     if (outcome.reachedGoal) {
-      this.currentGoal = this.relocateGoalFn(
-        this.constructRef,
-        this.currentGoal,
-        this.currentPosition,
-        this.rng,
-      );
+      const checkpoints = this.constructRef.checkpoints;
+      if (checkpoints.length > 0) {
+        // Circuit: advance to the next checkpoint in order, wrapping into a new
+        // lap (no completion state — it just keeps going around).
+        this.checkpoint = (this.checkpoint + 1) % checkpoints.length;
+        this.currentGoal = checkpoints[this.checkpoint]!;
+      } else {
+        // Maze: the single goal relocates to a new open cell.
+        this.currentGoal = this.relocateGoalFn(
+          this.constructRef,
+          this.currentGoal,
+          this.currentPosition,
+          this.rng,
+        );
+      }
       goalRelocated = true;
     }
 

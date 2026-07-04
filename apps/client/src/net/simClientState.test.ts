@@ -19,7 +19,7 @@ function record(tick: number): TickRecord {
 
 const welcome: WelcomeMessage = {
   type: 'welcome',
-  construct: { id: 'first', width: 2, height: 1, walls: [[false, false]] },
+  construct: { id: 'first', width: 2, height: 1, walls: [[false, false]], checkpoints: [] },
   state: {
     position: { x: 0, y: 0 },
     goal: { x: 1, y: 0 },
@@ -105,6 +105,32 @@ describe('applyServerMessage', () => {
       record: record(4),
     });
     expect(s.heatmap).toEqual([[1, null, 3]]); // retained across the tick
+  });
+
+  it('a transition swaps the construct and state, and clears the heatmap', () => {
+    let s = applyServerMessage(initialClientState, welcome);
+    s = applyServerMessage(s, { type: 'heatmap', values: [[1]] });
+    s = applyServerMessage(s, {
+      type: 'transition',
+      construct: {
+        id: 'track',
+        width: 3,
+        height: 1,
+        walls: [[false, false, false]],
+        checkpoints: [{ x: 2, y: 0 }],
+      },
+      state: {
+        position: { x: 0, y: 0 },
+        goal: { x: 2, y: 0 },
+        tickCount: 3,
+        epsilon: 0.3,
+        wear: WEAR0,
+      },
+    });
+    expect(s.construct?.id).toBe('track');
+    expect(s.construct?.checkpoints).toHaveLength(1);
+    expect(s.sim?.goal).toEqual({ x: 2, y: 0 });
+    expect(s.heatmap).toBeNull(); // stale heatmap invalidated by the new world
   });
 
   it('clears any stale heatmap on a fresh welcome (reconnect)', () => {

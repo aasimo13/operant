@@ -14,6 +14,7 @@ import {
 import {
   buildHeatmap,
   buildTickMessage,
+  buildTransition,
   buildWelcome,
   type ClientMessage,
   type HeatmapMessage,
@@ -51,6 +52,8 @@ interface DrainedInputs {
 export interface SimHostOptions {
   readonly engine: SimEngine;
   readonly store: SimStore;
+  /** Random source for building engines on a Construct transition. */
+  readonly rng: Rng;
   readonly recentLimit?: number;
   readonly providenceReward?: number;
   readonly providencePunish?: number;
@@ -76,8 +79,9 @@ export interface SimHostOptions {
  * influences behavior, and never blocks the tick (constraint 3).
  */
 export class SimHost {
-  private readonly engine: SimEngine;
+  private engine: SimEngine;
   private readonly store: SimStore;
+  private readonly rng: Rng;
   private readonly recentLimit: number;
   private readonly transcriptLimit: number;
   private readonly providenceReward: number;
@@ -97,6 +101,7 @@ export class SimHost {
   constructor(options: SimHostOptions) {
     this.engine = options.engine;
     this.store = options.store;
+    this.rng = options.rng;
     this.recentLimit = options.recentLimit ?? DEFAULT_RECENT_LIMIT;
     this.transcriptLimit = options.transcriptLimit ?? DEFAULT_TRANSCRIPT_LIMIT;
     this.providenceReward = options.providenceReward ?? PROVIDENCE_REWARD;
@@ -215,6 +220,8 @@ export class SimHost {
       } else if (input.type === 'providence') {
         bonus += input.kind === 'reward' ? this.providenceReward : this.providencePunish;
         providence = input.kind;
+      } else if (input.type === 'transitionTo') {
+        this.applyTransition(input.constructId);
       }
       // requestHeatmap is handled at the WebSocket layer and never enqueued.
     }
@@ -234,12 +241,33 @@ export class SimHost {
     this.broadcast({ type: 'narration', line });
   }
 
+  /**
+   * Move the Sim into a different Construct (an Observer dropping it into the
+   * track). It carries its learned Q-values across — nothing is erased — and
+   * restarts at the new Construct's entrance. The world visibly changed, so the
+   * narrator gets a dedicated moment and clients are told to reconfigure.
+   */
+  private applyTransition(constructId: string): void {
+    if (constructId === this.engine.constructId) return; // already there
+    const construct = lookupConstruct(constructId);
+    this.engine = new SimEngine({
+      construct,
+      agent: this.engine.agent, // same brain — instincts carry over and misfire
+      rng: this.rng,
+      position: construct.start,
+      tickCount: this.engine.tickCount,
+    });
+    this.narrator.announce('constructChanged', this.engine.tickCount, this.engine.position);
+    this.broadcast(buildTransition(this.engine, wearBreakdown(this.wearState)));
+  }
+
   private snapshot(): PersistedSimState {
     return {
       constructId: this.engine.constructId,
       position: this.engine.position,
       goal: this.engine.goal,
       tickCount: this.engine.tickCount,
+      checkpointIndex: this.engine.checkpointIndex,
       agent: this.engine.agent.serialize(),
       wear: this.wearState,
     };
@@ -282,10 +310,12 @@ export async function createSimHost(options: CreateSimHostOptions): Promise<SimH
     position: state.position,
     goal: state.goal,
     tickCount: state.tickCount,
+    checkpointIndex: state.checkpointIndex ?? 0,
   });
   return new SimHost({
     engine,
     store: options.store,
+    rng: options.rng,
     transcriptSeed,
     wearSeed: state.wear ?? initialWearState(),
     narrationSource: options.narrationSource ?? createNarrationSource(),

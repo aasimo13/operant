@@ -9,12 +9,14 @@ import type { WearBreakdown } from './wear';
  * validation live in the server; the client only needs these types.
  */
 
-/** Static maze geometry, sent once on connect. `walls[y][x]` is true for a wall. */
+/** Static geometry, sent on connect (and on transition). `walls[y][x]` = wall. */
 export interface ConstructView {
   readonly id: string;
   readonly width: number;
   readonly height: number;
   readonly walls: boolean[][];
+  /** Ordered checkpoints for a circuit track (empty for a plain maze). */
+  readonly checkpoints: GridPosition[];
 }
 
 /** The Sim's live, changing state, small enough to broadcast every tick. */
@@ -68,7 +70,19 @@ export interface NarrationMessage {
   readonly line: NarrationLine;
 }
 
-export type ServerMessage = WelcomeMessage | TickMessage | HeatmapMessage | NarrationMessage;
+/**
+ * The world changed under the Sim — it was moved into a different Construct
+ * (e.g. maze → track). Carries the new geometry and state so the client can
+ * reconfigure the scene. The Sim keeps its learned Q-values across this.
+ */
+export interface TransitionMessage {
+  readonly type: 'transition';
+  readonly construct: ConstructView;
+  readonly state: SimStateView;
+}
+
+export type ServerMessage =
+  WelcomeMessage | TickMessage | HeatmapMessage | NarrationMessage | TransitionMessage;
 
 // ─── client → server ─────────────────────────────────────────────────────────
 
@@ -89,4 +103,11 @@ export interface HeatmapRequestMessage {
   readonly type: 'requestHeatmap';
 }
 
-export type ClientMessage = ProvidenceMessage | InterveneMessage | HeatmapRequestMessage;
+/** Move the Sim into a different Construct (e.g. drop it into the track). */
+export interface TransitionRequestMessage {
+  readonly type: 'transitionTo';
+  readonly constructId: string;
+}
+
+export type ClientMessage =
+  ProvidenceMessage | InterveneMessage | HeatmapRequestMessage | TransitionRequestMessage;

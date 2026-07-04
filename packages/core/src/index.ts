@@ -19,6 +19,7 @@ export type { Action, GridPosition } from './grid';
 export { parseConstruct, shortestPathLength } from './construct';
 export type { Construct } from './construct';
 export { FIRST_CONSTRUCT } from './firstConstruct';
+export { THE_TRACK } from './track';
 
 // Environment dynamics.
 export { step } from './environment';
@@ -55,9 +56,11 @@ export type {
   HeatmapMessage,
   NarrationLine,
   NarrationMessage,
+  TransitionMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
   HeatmapRequestMessage,
+  TransitionRequestMessage,
   ClientMessage,
 } from './protocol';

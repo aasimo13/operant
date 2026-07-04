@@ -24,6 +24,15 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage('{"type":"requestHeatmap"}')).toEqual({ type: 'requestHeatmap' });
   });
 
+  it('accepts a transition request', () => {
+    expect(parseClientMessage('{"type":"transitionTo","constructId":"track"}')).toEqual({
+      type: 'transitionTo',
+      constructId: 'track',
+    });
+    expect(parseClientMessage('{"type":"transitionTo"}')).toBeNull(); // missing id
+    expect(parseClientMessage('{"type":"transitionTo","constructId":""}')).toBeNull(); // empty id
+  });
+
   it('rejects malformed JSON', () => {
     expect(parseClientMessage('not json')).toBeNull();
   });

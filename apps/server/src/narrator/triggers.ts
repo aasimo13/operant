@@ -1,5 +1,9 @@
-/** What occasioned a potential narration on a given tick. */
-export type NarrationTrigger = 'intervene' | 'goal' | 'punish' | 'reward' | 'wallBump' | 'idle';
+/**
+ * What occasioned a potential narration. Most are per-tick events; `constructChanged`
+ * is announced out-of-band when the Sim is moved into a different Construct.
+ */
+export type NarrationTrigger =
+  'intervene' | 'goal' | 'punish' | 'reward' | 'wallBump' | 'idle' | 'constructChanged';
 
 /** What happened to the Sim on one tick, from the narrator's point of view. */
 export interface TickSituation {

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Vector3 } from 'three';
 import type { SimClientState } from '../net/simClientState';
-import { GoalMarker, Substrate } from './Substrate';
+import { CheckpointMarkers, GoalMarker, Substrate } from './Substrate';
 import { SimAvatar } from './SimAvatar';
 import { CameraRig } from './CameraRig';
 import { InteractionPlane } from './InteractionPlane';
@@ -41,6 +41,13 @@ export function Scene({
 
       <Cosmos />
       {construct && <Substrate construct={construct} />}
+      {construct && construct.checkpoints.length > 0 && (
+        <CheckpointMarkers
+          checkpoints={construct.checkpoints}
+          width={construct.width}
+          height={construct.height}
+        />
+      )}
       {construct && cameraMode === 'god' && state.heatmap && (
         <HeatmapOverlay construct={construct} values={state.heatmap} />
       )}

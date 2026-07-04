@@ -59,5 +59,9 @@ export function applyServerMessage(state: SimClientState, message: ServerMessage
         ...state,
         transcript: [...state.transcript, message.line].slice(-TRANSCRIPT_LIMIT),
       };
+    case 'transition':
+      // The Sim was moved into a different Construct — swap geometry and state,
+      // invalidate the heatmap, keep the transcript.
+      return { ...state, construct: message.construct, sim: message.state, heatmap: null };
   }
 }

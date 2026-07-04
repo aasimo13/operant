@@ -34,6 +34,7 @@ export function initialSimState(construct: Construct): PersistedSimState {
     position: construct.start,
     goal: construct.goal,
     tickCount: 0,
+    checkpointIndex: 0,
     agent: new QLearningAgent().serialize(),
     wear: initialWearState(),
   };

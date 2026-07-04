@@ -37,6 +37,31 @@ export function Substrate({ construct }: { construct: ConstructView }): React.JS
   );
 }
 
+/** Dim rings marking a circuit's checkpoints (the bright goal marker sits on the active one). */
+export function CheckpointMarkers({
+  checkpoints,
+  width,
+  height,
+}: {
+  checkpoints: GridPosition[];
+  width: number;
+  height: number;
+}): React.JSX.Element {
+  return (
+    <group>
+      {checkpoints.map((cp, i) => {
+        const [wx, wz] = cellToWorldXZ(cp.x, cp.y, width, height);
+        return (
+          <mesh key={i} position={[wx, 0.08, wz]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.28, 0.4, 20]} />
+            <meshBasicMaterial color="#4a6bd0" transparent opacity={0.5} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 /** The goal cell — a soft glowing marker the Sim is currently seeking. */
 export function GoalMarker({
   goal,

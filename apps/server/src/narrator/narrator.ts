@@ -1,5 +1,5 @@
 import type { GridPosition, NarrationLine } from '@operant/core';
-import { selectTrigger, type TickSituation } from './triggers';
+import { selectTrigger, type NarrationTrigger, type TickSituation } from './triggers';
 import type { NarrationSource } from './source';
 
 /** Everything the narrator needs to react to one tick. */
@@ -55,15 +55,28 @@ export class Narrator {
 
     const trigger = selectTrigger(input, this.ticksSinceLast, this.fallbackTicks);
     if (!trigger) return;
+    this.fire(trigger, input.tick, input.position);
+  }
 
+  /**
+   * Force a narration for an out-of-band event (e.g. a Construct transition),
+   * bypassing the cooldown — such moments are always worth a line. Still
+   * respects the busy guard so it never overlaps an in-flight line.
+   */
+  announce(trigger: NarrationTrigger, tick: number, position: GridPosition): void {
+    if (this.busy) return;
+    this.fire(trigger, tick, position);
+  }
+
+  private fire(trigger: NarrationTrigger, tick: number, position: GridPosition): void {
     this.busy = true;
     this.hasNarrated = true;
     this.ticksSinceLast = 0;
 
     void this.source
-      .generate({ trigger, tick: input.tick, position: input.position })
+      .generate({ trigger, tick, position })
       .then((text) => {
-        if (text) this.onLine({ tick: input.tick, text });
+        if (text) this.onLine({ tick, text });
       })
       .catch(() => {
         // Graceful degradation: a narration failure never breaks the Sim.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useSimSocket } from './net/useSimSocket';
 import { Scene } from './scene/Scene';
@@ -10,6 +10,7 @@ import { ProvidenceControls } from './ui/ProvidenceControls';
 import { TranscriptPanel } from './ui/TranscriptPanel';
 import { WearDebug } from './ui/WearDebug';
 import { Landing } from './ui/Landing';
+import { RelocateControls } from './ui/RelocateControls';
 import './App.css';
 
 /** The Observer's live WebSocket endpoint (overridable per environment). */
@@ -35,6 +36,21 @@ export function App(): React.JSX.Element {
     (cell: Cell) => send({ type: 'intervene', position: cell }),
     [send],
   );
+  const relocate = useCallback(
+    (constructId: string) => send({ type: 'transitionTo', constructId }),
+    [send],
+  );
+
+  // A brief "the world reconfigures" flash whenever the Construct changes.
+  const prevConstructId = useRef<string | undefined>(undefined);
+  const [flashKey, setFlashKey] = useState(0);
+  useEffect(() => {
+    const id = state.construct?.id;
+    if (id && prevConstructId.current && prevConstructId.current !== id) {
+      setFlashKey((k) => k + 1);
+    }
+    prevConstructId.current = id;
+  }, [state.construct?.id]);
 
   // While in god view, poll the host for the value-landscape heatmap. It only
   // costs bandwidth when someone is actually looking at it.
@@ -63,8 +79,10 @@ export function App(): React.JSX.Element {
       <Hud connected={connected} tickCount={state.sim?.tickCount ?? null} />
       <TranscriptPanel lines={state.transcript} />
       <ProvidenceControls onReward={reward} onPunish={punish} />
+      <RelocateControls currentConstructId={state.construct?.id ?? 'first'} onRelocate={relocate} />
       <ViewControls mode={cameraMode} fov={fov} onModeChange={setCameraMode} onFovChange={setFov} />
       {import.meta.env.DEV && state.sim && <WearDebug wear={state.sim.wear} />}
+      {flashKey > 0 && <div key={flashKey} className="transition-flash" aria-hidden="true" />}
     </div>
   );
 }

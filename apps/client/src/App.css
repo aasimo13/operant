@@ -219,6 +219,86 @@
   font-size: 0.7rem;
 }
 
+/* Relocate — move the Sim between Constructs (maze ⇄ track), top-right below Providence. */
+.relocate {
+  position: absolute;
+  top: 9.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-end;
+  pointer-events: auto;
+}
+
+.relocate__label {
+  font-size: 0.55rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #565d70;
+}
+
+.relocate__btn {
+  padding: 0.45rem 1.1rem;
+  font: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #aeb6cc;
+  background: rgba(12, 18, 34, 0.6);
+  border: 1px solid rgba(120, 150, 220, 0.22);
+  border-radius: 2px;
+  cursor: pointer;
+  min-width: 8.5rem;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.relocate__btn:hover {
+  color: #eaf0ff;
+  border-color: rgba(120, 150, 220, 0.55);
+}
+
+.relocate__btn[aria-pressed='true'] {
+  color: #eef1fa;
+  border-color: #6b8cff;
+  background: rgba(43, 108, 255, 0.18);
+}
+
+.relocate__btn:focus-visible {
+  outline: 2px solid #6b8cff;
+  outline-offset: 2px;
+}
+
+/* The world reconfigures — a brief luminous flash on a Construct transition. */
+.transition-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(180, 200, 255, 0.85),
+    rgba(60, 90, 200, 0.3) 45%,
+    transparent 70%
+  );
+  animation: transition-flash 1s ease-out forwards;
+}
+
+@keyframes transition-flash {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* Providence — reward/punish, top-right, framed as an external force. */
 .providence {
   position: absolute;

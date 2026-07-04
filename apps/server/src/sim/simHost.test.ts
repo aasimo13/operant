@@ -3,6 +3,7 @@ import {
   SimEngine,
   QLearningAgent,
   FIRST_CONSTRUCT,
+  THE_TRACK,
   createRng,
   positionKey,
   ACTIONS,
@@ -26,7 +27,13 @@ function makeHost(rngSeed = 1, position = FIRST_CONSTRUCT.start) {
     position,
   });
   const store = fakeStore();
-  const host = new SimHost({ engine, store, recentLimit: 3, narrationSource: silent });
+  const host = new SimHost({
+    engine,
+    store,
+    rng: createRng(rngSeed),
+    recentLimit: 3,
+    narrationSource: silent,
+  });
   return { engine, store, host };
 }
 
@@ -122,6 +129,7 @@ describe('SimHost narrator wiring', () => {
     const store = fakeStore();
     const host = new SimHost({
       engine,
+      rng: createRng(1),
       store,
       narrationSource: { generate: async () => 'a hand I cannot see' },
     });
@@ -146,11 +154,46 @@ describe('SimHost narrator wiring', () => {
     });
     const host = new SimHost({
       engine,
+      rng: createRng(1),
       store: fakeStore(),
       transcriptSeed: [{ tick: 10, text: 'an older thought' }],
       narrationSource: silent,
     });
     expect(host.welcomeFor().transcript).toEqual([{ tick: 10, text: 'an older thought' }]);
+  });
+});
+
+describe('SimHost Construct transition (drop into the track)', () => {
+  it('moves the Sim into the new Construct, keeps its brain, narrates, and broadcasts', async () => {
+    const engine = new SimEngine({
+      construct: FIRST_CONSTRUCT,
+      agent: new QLearningAgent({ epsilon: 0 }),
+      rng: createRng(1),
+    });
+    engine.agent.update('0,0', 'right', 5, '1,0'); // some learned knowledge
+    const store = fakeStore();
+    const host = new SimHost({
+      engine,
+      rng: createRng(1),
+      store,
+      narrationSource: { generate: async () => 'these are not the walls I knew' },
+    });
+    const messages: ServerMessage[] = [];
+    host.subscribe((m) => messages.push(m));
+
+    host.enqueueInput({ type: 'transitionTo', constructId: THE_TRACK.id });
+    await host.tick();
+    await flush();
+
+    // The welcome now describes the track (with checkpoints), and the Sim kept
+    // its learned Q-values across the move (nothing erased).
+    expect(host.welcomeFor().construct.id).toBe(THE_TRACK.id);
+    expect(host.welcomeFor().construct.checkpoints.length).toBeGreaterThan(0);
+    expect(engine.agent.serialize().qTable['0,0']).toBeDefined(); // maze knowledge survived
+
+    expect(messages.some((m) => m.type === 'transition')).toBe(true);
+    const narration = messages.find((m) => m.type === 'narration');
+    expect(narration).toBeDefined();
   });
 });
 

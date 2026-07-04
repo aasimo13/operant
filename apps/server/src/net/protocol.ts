@@ -9,6 +9,7 @@ import type {
   SimStateView,
   TickMessage,
   TickRecord,
+  TransitionMessage,
   WearBreakdown,
   WelcomeMessage,
 } from '@operant/core';
@@ -33,10 +34,12 @@ export type {
   HeatmapMessage,
   NarrationLine,
   NarrationMessage,
+  TransitionMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
   HeatmapRequestMessage,
+  TransitionRequestMessage,
   ClientMessage,
 } from '@operant/core';
 
@@ -51,7 +54,13 @@ export function buildConstructView(construct: Construct): ConstructView {
     }
     walls.push(row);
   }
-  return { id: construct.id, width: construct.width, height: construct.height, walls };
+  return {
+    id: construct.id,
+    width: construct.width,
+    height: construct.height,
+    walls,
+    checkpoints: construct.checkpoints.map((cp) => ({ x: cp.x, y: cp.y })),
+  };
 }
 
 export function buildStateView(engine: SimEngine, wear: WearBreakdown): SimStateView {
@@ -91,6 +100,14 @@ export function buildHeatmap(engine: SimEngine): HeatmapMessage {
   return { type: 'heatmap', values: bestActionValues(engine.construct, engine.agent) };
 }
 
+export function buildTransition(engine: SimEngine, wear: WearBreakdown): TransitionMessage {
+  return {
+    type: 'transition',
+    construct: buildConstructView(engine.construct),
+    state: buildStateView(engine, wear),
+  };
+}
+
 // ─── validation ──────────────────────────────────────────────────────────────
 
 function isFiniteNumber(value: unknown): value is number {
@@ -125,6 +142,14 @@ export function parseClientMessage(raw: string): ClientMessage | null {
 
   if (msg.type === 'requestHeatmap') {
     return { type: 'requestHeatmap' };
+  }
+
+  if (
+    msg.type === 'transitionTo' &&
+    typeof msg.constructId === 'string' &&
+    msg.constructId !== ''
+  ) {
+    return { type: 'transitionTo', constructId: msg.constructId };
   }
 
   return null;

@@ -1,4 +1,4 @@
-import { FIRST_CONSTRUCT, type Construct } from '@operant/core';
+import { FIRST_CONSTRUCT, THE_TRACK, type Construct } from '@operant/core';
 
 /**
  * Registry of known Constructs by id. The Sim moves through a *sequence* of
@@ -7,6 +7,7 @@ import { FIRST_CONSTRUCT, type Construct } from '@operant/core';
  */
 const CONSTRUCTS: Record<string, Construct> = {
   [FIRST_CONSTRUCT.id]: FIRST_CONSTRUCT,
+  [THE_TRACK.id]: THE_TRACK,
 };
 
 export function lookupConstruct(id: string): Construct {

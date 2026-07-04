@@ -21,6 +21,8 @@ export interface PersistedSimState {
   readonly goal: GridPosition;
   /** How many decision ticks have ever elapsed. Monotonic; never resets. */
   readonly tickCount: number;
+  /** Which checkpoint the Sim is currently seeking on a circuit (0 for a maze). */
+  readonly checkpointIndex: number;
   /** The learned Q-table + hyperparameters. The irreplaceable part. */
   readonly agent: QLearningAgentSnapshot;
   /** Accumulated visible wear — structurally separate from the Q-values. */
