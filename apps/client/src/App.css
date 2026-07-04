@@ -36,3 +36,68 @@
   color: #8a90a2;
   text-transform: uppercase;
 }
+
+/* Viewpoint controls — observatory instruments, bottom-centered. */
+.controls {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+.controls__modes {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.controls__btn {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #aeb6cc;
+  background: rgba(12, 18, 34, 0.6);
+  border: 1px solid rgba(120, 150, 220, 0.25);
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.controls__btn:hover {
+  color: #eaf0ff;
+  border-color: rgba(120, 150, 220, 0.55);
+}
+
+.controls__btn[aria-pressed='true'] {
+  color: #eaf0ff;
+  border-color: #6b8cff;
+  background: rgba(43, 108, 255, 0.22);
+}
+
+.controls__btn:focus-visible {
+  outline: 2px solid #6b8cff;
+  outline-offset: 2px;
+}
+
+.controls__fov {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #8a90a2;
+}
+
+.controls__fov input {
+  accent-color: #6b8cff;
+}

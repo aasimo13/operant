@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useRef, type RefObject } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { Vector3, type Mesh } from 'three';
 import type { GridPosition, TickRecord } from '@operant/core';
 import { lerpPosition } from './tween';
@@ -14,14 +14,17 @@ export interface SimAvatarProps {
   readonly height: number;
   /** Decision-tick length, so the tween finishes exactly as the next tick lands. */
   readonly tickMs: number;
-  /** Whether the third-person camera trails the Sim (the step-5 default view). */
-  readonly follow?: boolean;
+  /** Written each frame with the Sim's current world position, for the camera. */
+  readonly worldOut: RefObject<Vector3>;
+  /** Hidden in first person (you look out through the Sim, not at its body). */
+  readonly visible?: boolean;
 }
 
 /**
  * The Sim itself: a glowing mote that tweens smoothly across each decision tick
  * (render is 60fps, decoupled from the ~1.5s decision tick — see CLAUDE.md
- * timing model). A trailing third-person camera follows it by default.
+ * timing model). It also publishes its live world position so the camera rig
+ * can follow it in any viewpoint.
  *
  * Intervene needs no special handling: it changes the next record's `from`, so
  * the Sim simply appears at the drop cell rather than sliding there.
@@ -32,13 +35,12 @@ export function SimAvatar({
   width,
   height,
   tickMs,
-  follow = true,
+  worldOut,
+  visible = true,
 }: SimAvatarProps): React.JSX.Element {
   const meshRef = useRef<Mesh>(null);
   const tickStartedAt = useRef(0);
   const lastTick = useRef(-1);
-  const cameraTarget = useRef(new Vector3());
-  const { camera } = useThree();
 
   useFrame((state) => {
     const mesh = meshRef.current;
@@ -62,16 +64,11 @@ export function SimAvatar({
 
     const [wx, wz] = cellToWorldXZ(gx, gy, width, height);
     mesh.position.set(wx, 0.5, wz);
-
-    if (follow) {
-      cameraTarget.current.set(wx, 6, wz + 7);
-      camera.position.lerp(cameraTarget.current, 0.04);
-      camera.lookAt(wx, 0.5, wz);
-    }
+    worldOut.current.set(wx, 0.5, wz);
   });
 
   return (
-    <mesh ref={meshRef} castShadow>
+    <mesh ref={meshRef} visible={visible} castShadow>
       <sphereGeometry args={[0.34, 24, 24]} />
       <meshStandardMaterial color="#9fd4ff" emissive="#2a6cff" emissiveIntensity={0.7} />
     </mesh>
