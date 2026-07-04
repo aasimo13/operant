@@ -40,6 +40,8 @@ export interface SimEngineOptions {
   readonly position?: GridPosition;
   /** Starting goal (defaults to the Construct's initial goal). */
   readonly goal?: GridPosition;
+  /** Restored tick count (defaults to 0). Used to rehydrate on boot. */
+  readonly tickCount?: number;
   /** Goal-relocation strategy (defaults to a random open cell). */
   readonly relocateGoal?: RelocateGoal;
 }
@@ -52,22 +54,32 @@ export interface SimEngineOptions {
  * unit the always-on simulation host ticks on its fixed clock.
  */
 export class SimEngine {
-  private readonly construct: Construct;
+  private readonly constructRef: Construct;
   private readonly agentRef: QLearningAgent;
   private readonly rng: Rng;
   private readonly relocateGoalFn: RelocateGoal;
 
   private currentPosition: GridPosition;
   private currentGoal: GridPosition;
-  private ticks = 0;
+  private ticks: number;
 
   constructor(options: SimEngineOptions) {
-    this.construct = options.construct;
+    this.constructRef = options.construct;
     this.agentRef = options.agent;
     this.rng = options.rng;
     this.relocateGoalFn = options.relocateGoal ?? randomOpenCell;
     this.currentPosition = options.position ?? options.construct.start;
     this.currentGoal = options.goal ?? options.construct.goal;
+    this.ticks = options.tickCount ?? 0;
+  }
+
+  /** The Construct the Sim is currently running (immutable geometry). */
+  get construct(): Construct {
+    return this.constructRef;
+  }
+
+  get constructId(): string {
+    return this.constructRef.id;
   }
 
   get position(): GridPosition {
@@ -87,20 +99,43 @@ export class SimEngine {
     return this.agentRef;
   }
 
-  /** Advance the simulation by one decision step. */
-  tick(): TickRecord {
+  /**
+   * Relocate the Sim to an open cell (an Observer "Intervene"). Changes only its
+   * position — never its learned Q-values and never the tick count. Returns
+   * false (and does nothing) if the target isn't an open cell.
+   */
+  intervene(position: GridPosition): boolean {
+    if (!this.constructRef.isOpen(position)) return false;
+    this.currentPosition = position;
+    return true;
+  }
+
+  /**
+   * Advance the simulation by one decision step.
+   *
+   * `bonusReward` (default 0) is a one-off manual reward folded into this tick's
+   * Q-update — this is how Observer "Providence" shapes the policy. It affects
+   * learning only; the returned record's `reward` remains the environment reward.
+   */
+  tick(options: { bonusReward?: number } = {}): TickRecord {
+    const bonusReward = options.bonusReward ?? 0;
     const from = this.currentPosition;
     const stateKey = positionKey(from);
     const action = this.agentRef.chooseAction(stateKey, this.rng);
-    const outcome = step(this.construct, from, action, this.currentGoal);
+    const outcome = step(this.constructRef, from, action, this.currentGoal);
 
-    this.agentRef.update(stateKey, action, outcome.reward, positionKey(outcome.nextPosition));
+    this.agentRef.update(
+      stateKey,
+      action,
+      outcome.reward + bonusReward,
+      positionKey(outcome.nextPosition),
+    );
     this.currentPosition = outcome.nextPosition;
 
     let goalRelocated = false;
     if (outcome.reachedGoal) {
       this.currentGoal = this.relocateGoalFn(
-        this.construct,
+        this.constructRef,
         this.currentGoal,
         this.currentPosition,
         this.rng,
