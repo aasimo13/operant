@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { TickMessage, TickRecord, WelcomeMessage } from '@operant/core';
 import { applyServerMessage, initialClientState } from './simClientState';
 
+const WEAR0 = { baselineWear: 0, recentStrain: 0, wear: 0 };
+
 function record(tick: number): TickRecord {
   return {
     tick,
@@ -18,7 +20,13 @@ function record(tick: number): TickRecord {
 const welcome: WelcomeMessage = {
   type: 'welcome',
   construct: { id: 'first', width: 2, height: 1, walls: [[false, false]] },
-  state: { position: { x: 0, y: 0 }, goal: { x: 1, y: 0 }, tickCount: 3, epsilon: 0.3 },
+  state: {
+    position: { x: 0, y: 0 },
+    goal: { x: 1, y: 0 },
+    tickCount: 3,
+    epsilon: 0.3,
+    wear: WEAR0,
+  },
   recent: [record(1), record(2), record(3)],
   transcript: [{ tick: 2, text: 'a first thought' }],
 };
@@ -40,7 +48,13 @@ describe('applyServerMessage', () => {
     const base = applyServerMessage(initialClientState, welcome);
     const tick: TickMessage = {
       type: 'tick',
-      state: { position: { x: 4, y: 0 }, goal: { x: 1, y: 0 }, tickCount: 4, epsilon: 0.29 },
+      state: {
+        position: { x: 4, y: 0 },
+        goal: { x: 1, y: 0 },
+        tickCount: 4,
+        epsilon: 0.29,
+        wear: WEAR0,
+      },
       record: record(4),
     };
     const s = applyServerMessage(base, tick);
@@ -62,7 +76,13 @@ describe('applyServerMessage', () => {
 
     s = applyServerMessage(s, {
       type: 'tick',
-      state: { position: { x: 4, y: 0 }, goal: { x: 1, y: 0 }, tickCount: 4, epsilon: 0.29 },
+      state: {
+        position: { x: 4, y: 0 },
+        goal: { x: 1, y: 0 },
+        tickCount: 4,
+        epsilon: 0.29,
+        wear: WEAR0,
+      },
       record: record(4),
     });
     expect(s.transcript.at(-1)).toEqual({ tick: 4, text: 'that wall again' }); // retained
@@ -75,7 +95,13 @@ describe('applyServerMessage', () => {
 
     s = applyServerMessage(s, {
       type: 'tick',
-      state: { position: { x: 4, y: 0 }, goal: { x: 1, y: 0 }, tickCount: 4, epsilon: 0.29 },
+      state: {
+        position: { x: 4, y: 0 },
+        goal: { x: 1, y: 0 },
+        tickCount: 4,
+        epsilon: 0.29,
+        wear: WEAR0,
+      },
       record: record(4),
     });
     expect(s.heatmap).toEqual([[1, null, 3]]); // retained across the tick
@@ -92,7 +118,13 @@ describe('applyServerMessage', () => {
     for (let t = 4; t < 400; t++) {
       s = applyServerMessage(s, {
         type: 'tick',
-        state: { position: { x: t, y: 0 }, goal: { x: 1, y: 0 }, tickCount: t, epsilon: 0.05 },
+        state: {
+          position: { x: t, y: 0 },
+          goal: { x: 1, y: 0 },
+          tickCount: t,
+          epsilon: 0.05,
+          wear: WEAR0,
+        },
         record: record(t),
       });
     }

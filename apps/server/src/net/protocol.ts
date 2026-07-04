@@ -9,6 +9,7 @@ import type {
   SimStateView,
   TickMessage,
   TickRecord,
+  WearBreakdown,
   WelcomeMessage,
 } from '@operant/core';
 
@@ -53,31 +54,37 @@ export function buildConstructView(construct: Construct): ConstructView {
   return { id: construct.id, width: construct.width, height: construct.height, walls };
 }
 
-export function buildStateView(engine: SimEngine): SimStateView {
+export function buildStateView(engine: SimEngine, wear: WearBreakdown): SimStateView {
   return {
     position: engine.position,
     goal: engine.goal,
     tickCount: engine.tickCount,
     epsilon: engine.agent.epsilon,
+    wear,
   };
 }
 
 export function buildWelcome(
   engine: SimEngine,
+  wear: WearBreakdown,
   recent: TickRecord[],
   transcript: NarrationLine[],
 ): WelcomeMessage {
   return {
     type: 'welcome',
     construct: buildConstructView(engine.construct),
-    state: buildStateView(engine),
+    state: buildStateView(engine, wear),
     recent,
     transcript,
   };
 }
 
-export function buildTickMessage(engine: SimEngine, record: TickRecord): TickMessage {
-  return { type: 'tick', state: buildStateView(engine), record };
+export function buildTickMessage(
+  engine: SimEngine,
+  wear: WearBreakdown,
+  record: TickRecord,
+): TickMessage {
+  return { type: 'tick', state: buildStateView(engine, wear), record };
 }
 
 export function buildHeatmap(engine: SimEngine): HeatmapMessage {

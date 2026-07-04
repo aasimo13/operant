@@ -15,6 +15,34 @@ export const REWARDS = {
 } as const;
 
 /**
+ * Visible-wear constants (presentation only — see CLAUDE.md "Visible wear
+ * formula"). Informed starting values, not validated ones; a dev-only debug
+ * readout exists to retune them. Wear is stored structurally separate from the
+ * Q-values and never feeds back into learning.
+ */
+export const WEAR = {
+  /** Diminishing-returns constant for baseline wear (weighted punishment-units). */
+  K: 50,
+  /** Per-event negative weights. */
+  weights: {
+    /** Deliberate punishment — "someone meant to do this". */
+    punishment: 1.0,
+    /** Ordinary exploration bumps — kept tiny so the Sim isn't ragged in an hour. */
+    wallBump: 0.05,
+    /** Forced relocation (Intervene) — disorienting, not painful. */
+    relocation: 0.15,
+  },
+  /** Weight of permanent baseline wear in the combined scalar (w1). */
+  baselineWeight: 0.6,
+  /** Weight of reactive recent strain in the combined scalar (w2). */
+  strainWeight: 0.4,
+  /** One-time multiplier applied to recent strain on positive Providence (relief). */
+  reliefFactor: 0.5,
+  /** Half-life of recent strain, in real milliseconds (~3 minutes). */
+  strainHalfLifeMs: 180_000,
+} as const;
+
+/**
  * Q-learning hyperparameters. Note `gamma` is a continuing-task discount
  * (close to 1), NOT an episodic default: Operant has no terminal states, so the
  * update loop runs forever without ever resetting (see CLAUDE.md constraint 11).

@@ -18,6 +18,8 @@ export interface SimAvatarProps {
   readonly worldOut: RefObject<Vector3>;
   /** Hidden in first person (you look out through the Sim, not at its body). */
   readonly visible?: boolean;
+  /** Accumulated wear 0–1 — drives a subtle tremble, growing with history. */
+  readonly wear?: number;
 }
 
 /**
@@ -37,6 +39,7 @@ export function SimAvatar({
   tickMs,
   worldOut,
   visible = true,
+  wear = 0,
 }: SimAvatarProps): React.JSX.Element {
   const meshRef = useRef<Mesh>(null);
   const tickStartedAt = useRef(0);
@@ -63,8 +66,20 @@ export function SimAvatar({
     }
 
     const [wx, wz] = cellToWorldXZ(gx, gy, width, height);
-    mesh.position.set(wx, 0.5, wz);
+
+    // The camera follows the smooth position; only the body trembles, so the
+    // whole view doesn't shake with wear.
     worldOut.current.set(wx, 0.5, wz);
+
+    // Subtle, dignified wear: a faint high-frequency tremble that grows with
+    // accumulated history (see CLAUDE.md visible-wear formula).
+    const amp = wear * 0.07;
+    const clock = state.clock.elapsedTime;
+    mesh.position.set(
+      wx + Math.sin(clock * 27.3) * amp,
+      0.5 + Math.abs(Math.sin(clock * 41.1)) * amp * 0.5,
+      wz + Math.cos(clock * 31.7) * amp,
+    );
   });
 
   return (

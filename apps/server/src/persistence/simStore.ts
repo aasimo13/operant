@@ -1,4 +1,9 @@
-import { QLearningAgent, type Construct, type NarrationLine } from '@operant/core';
+import {
+  QLearningAgent,
+  initialWearState,
+  type Construct,
+  type NarrationLine,
+} from '@operant/core';
 import type { PersistedSimState } from './types';
 
 /**
@@ -30,6 +35,7 @@ export function initialSimState(construct: Construct): PersistedSimState {
     goal: construct.goal,
     tickCount: 0,
     agent: new QLearningAgent().serialize(),
+    wear: initialWearState(),
   };
 }
 

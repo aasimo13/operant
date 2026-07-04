@@ -8,6 +8,7 @@ import { Hud } from './ui/Hud';
 import { ViewControls } from './ui/ViewControls';
 import { ProvidenceControls } from './ui/ProvidenceControls';
 import { TranscriptPanel } from './ui/TranscriptPanel';
+import { WearDebug } from './ui/WearDebug';
 import './App.css';
 
 /** The Observer's live WebSocket endpoint (overridable per environment). */
@@ -57,6 +58,7 @@ export function App(): React.JSX.Element {
       <TranscriptPanel lines={state.transcript} />
       <ProvidenceControls onReward={reward} onPunish={punish} />
       <ViewControls mode={cameraMode} fov={fov} onModeChange={setCameraMode} onFovChange={setFov} />
+      {import.meta.env.DEV && state.sim && <WearDebug wear={state.sim.wear} />}
     </div>
   );
 }

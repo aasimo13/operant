@@ -2,9 +2,14 @@ import {
   QLearningAgent,
   SimEngine,
   FIRST_CONSTRUCT,
+  advanceWear,
+  initialWearState,
+  strainDecayPerTick,
+  wearBreakdown,
   type NarrationLine,
   type Rng,
   type TickRecord,
+  type WearState,
 } from '@operant/core';
 import {
   buildHeatmap,
@@ -31,6 +36,8 @@ const PROVIDENCE_PUNISH = -10;
 const DEFAULT_RECENT_LIMIT = 50;
 /** How many recent narrator lines to keep for reconnect backfill (constraint 16). */
 const DEFAULT_TRANSCRIPT_LIMIT = 40;
+/** Assumed decision-tick length for wear decay when not otherwise configured. */
+const DEFAULT_TICK_MS = 1500;
 
 type Listener = (message: ServerMessage) => void;
 
@@ -52,6 +59,10 @@ export interface SimHostOptions {
   readonly transcriptLimit?: number;
   /** Recent transcript lines rehydrated from storage on boot. */
   readonly transcriptSeed?: NarrationLine[];
+  /** Accumulated wear rehydrated from storage on boot. */
+  readonly wearSeed?: WearState;
+  /** Decision-tick length, so recent-strain decays at the right real-time rate. */
+  readonly tickMs?: number;
 }
 
 /**
@@ -72,11 +83,13 @@ export class SimHost {
   private readonly providenceReward: number;
   private readonly providencePunish: number;
   private readonly narrator: Narrator;
+  private readonly strainDecay: number;
 
   private readonly listeners = new Set<Listener>();
   private readonly inputQueue: ClientMessage[] = [];
   private readonly recentRecords: TickRecord[] = [];
   private readonly recentTranscript: NarrationLine[] = [];
+  private wearState: WearState;
 
   private running = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -88,6 +101,8 @@ export class SimHost {
     this.transcriptLimit = options.transcriptLimit ?? DEFAULT_TRANSCRIPT_LIMIT;
     this.providenceReward = options.providenceReward ?? PROVIDENCE_REWARD;
     this.providencePunish = options.providencePunish ?? PROVIDENCE_PUNISH;
+    this.strainDecay = strainDecayPerTick(options.tickMs ?? DEFAULT_TICK_MS);
+    this.wearState = options.wearSeed ?? initialWearState();
     if (options.transcriptSeed) this.recentTranscript.push(...options.transcriptSeed);
     this.narrator = new Narrator({
       source: options.narrationSource ?? new CannedNarrationSource(),
@@ -118,7 +133,12 @@ export class SimHost {
 
   /** The snapshot a newly-connected Observer receives. */
   welcomeFor(): WelcomeMessage {
-    return buildWelcome(this.engine, this.recent(), this.transcript());
+    return buildWelcome(
+      this.engine,
+      wearBreakdown(this.wearState),
+      this.recent(),
+      this.transcript(),
+    );
   }
 
   /** The current value-landscape heatmap (for god-view Observers, on request). */
@@ -135,10 +155,17 @@ export class SimHost {
     const inputs = this.drainInputs();
     const record = this.engine.tick({ bonusReward: inputs.bonus });
 
+    // Advance visible wear (presentation only; never feeds back into learning).
+    this.wearState = advanceWear(
+      this.wearState,
+      { hitWall: record.hitWall, intervened: inputs.intervened, providence: inputs.providence },
+      this.strainDecay,
+    );
+
     await this.store.saveSim(this.snapshot());
 
     this.remember(record);
-    this.broadcast(buildTickMessage(this.engine, record));
+    this.broadcast(buildTickMessage(this.engine, wearBreakdown(this.wearState), record));
 
     // Fire-and-forget: the narrator may compose a line, but the tick never waits.
     this.narrator.observe({
@@ -214,6 +241,7 @@ export class SimHost {
       goal: this.engine.goal,
       tickCount: this.engine.tickCount,
       agent: this.engine.agent.serialize(),
+      wear: this.wearState,
     };
   }
 
@@ -234,6 +262,8 @@ export interface CreateSimHostOptions {
   readonly rng: Rng;
   readonly recentLimit?: number;
   readonly narrationSource?: NarrationSource;
+  /** Decision-tick length, so wear decays at the right real-time rate. */
+  readonly tickMs?: number;
 }
 
 /**
@@ -257,7 +287,9 @@ export async function createSimHost(options: CreateSimHostOptions): Promise<SimH
     engine,
     store: options.store,
     transcriptSeed,
+    wearSeed: state.wear ?? initialWearState(),
     narrationSource: options.narrationSource ?? createNarrationSource(),
+    ...(options.tickMs !== undefined ? { tickMs: options.tickMs } : {}),
     ...(options.recentLimit !== undefined ? { recentLimit: options.recentLimit } : {}),
   });
 }

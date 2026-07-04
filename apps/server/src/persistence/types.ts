@@ -1,4 +1,4 @@
-import type { GridPosition, QLearningAgentSnapshot } from '@operant/core';
+import type { GridPosition, QLearningAgentSnapshot, WearState } from '@operant/core';
 
 /**
  * The full canonical state of the one persistent Sim, as written to storage.
@@ -23,4 +23,6 @@ export interface PersistedSimState {
   readonly tickCount: number;
   /** The learned Q-table + hyperparameters. The irreplaceable part. */
   readonly agent: QLearningAgentSnapshot;
+  /** Accumulated visible wear — structurally separate from the Q-values. */
+  readonly wear: WearState;
 }

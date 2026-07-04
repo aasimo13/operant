@@ -1,5 +1,6 @@
 import type { GridPosition } from './grid';
 import type { TickRecord } from './simEngine';
+import type { WearBreakdown } from './wear';
 
 /**
  * The WebSocket wire protocol shared by the simulation host and Observer
@@ -22,6 +23,8 @@ export interface SimStateView {
   readonly goal: GridPosition;
   readonly tickCount: number;
   readonly epsilon: number;
+  /** Accumulated wear — the `wear` scalar drives client jitter; parts feed the dev readout. */
+  readonly wear: WearBreakdown;
 }
 
 // ─── server → client ─────────────────────────────────────────────────────────

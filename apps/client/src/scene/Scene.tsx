@@ -6,6 +6,7 @@ import { SimAvatar } from './SimAvatar';
 import { CameraRig } from './CameraRig';
 import { InteractionPlane } from './InteractionPlane';
 import { HeatmapOverlay } from './HeatmapOverlay';
+import { Cosmos } from './Cosmos';
 import type { CameraMode } from './cameraPlacement';
 import type { Cell } from './layout';
 
@@ -34,10 +35,11 @@ export function Scene({
   return (
     <>
       <color attach="background" args={['#05060a']} />
-      <fog attach="fog" args={['#05060a', 10, 40]} />
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[6, 12, 4]} intensity={1.1} castShadow />
+      <fog attach="fog" args={['#05060a', 12, 46]} />
+      <ambientLight intensity={0.28} />
+      <directionalLight position={[6, 12, 4]} intensity={0.9} castShadow />
 
+      <Cosmos />
       {construct && <Substrate construct={construct} />}
       {construct && cameraMode === 'god' && state.heatmap && (
         <HeatmapOverlay construct={construct} values={state.heatmap} />
@@ -56,6 +58,7 @@ export function Scene({
             tickMs={tickMs}
             worldOut={simWorld}
             visible={cameraMode !== 'first'}
+            wear={sim.wear.wear}
           />
           <CameraRig
             mode={cameraMode}

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { SimEngine, QLearningAgent, parseConstruct, createRng } from '@operant/core';
+import {
+  SimEngine,
+  QLearningAgent,
+  parseConstruct,
+  createRng,
+  wearBreakdown,
+  initialWearState,
+  type WearBreakdown,
+} from '@operant/core';
 import {
   buildConstructView,
   buildHeatmap,
@@ -9,6 +17,7 @@ import {
 } from './protocol';
 
 const construct = parseConstruct('view', ['S.#', '.#.', '..G']);
+const wear: WearBreakdown = wearBreakdown(initialWearState());
 
 function engine(): SimEngine {
   return new SimEngine({
@@ -30,11 +39,12 @@ describe('buildConstructView', () => {
 
 describe('buildStateView', () => {
   it('captures the Sim’s live dynamic state', () => {
-    const view = buildStateView(engine());
+    const view = buildStateView(engine(), wear);
     expect(view.position).toEqual(construct.start);
     expect(view.goal).toEqual(construct.goal);
     expect(view.tickCount).toBe(0);
     expect(view.epsilon).toBeCloseTo(0.2);
+    expect(view.wear).toEqual(wear);
   });
 });
 
@@ -43,7 +53,7 @@ describe('buildWelcome', () => {
     const e = engine();
     const r1 = e.tick();
     const transcript = [{ tick: 1, text: 'a wall' }];
-    const welcome = buildWelcome(e, [r1], transcript);
+    const welcome = buildWelcome(e, wear, [r1], transcript);
     expect(welcome.type).toBe('welcome');
     expect(welcome.construct.id).toBe('view');
     expect(welcome.state.tickCount).toBe(1);
@@ -56,7 +66,7 @@ describe('buildTickMessage', () => {
   it('carries the tick record plus the resulting state', () => {
     const e = engine();
     const record = e.tick();
-    const msg = buildTickMessage(e, record);
+    const msg = buildTickMessage(e, wear, record);
     expect(msg.type).toBe('tick');
     expect(msg.record).toEqual(record);
     expect(msg.state.tickCount).toBe(1);

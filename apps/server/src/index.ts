@@ -27,7 +27,7 @@ async function main(): Promise<void> {
   await store.init();
 
   // Production randomness is genuinely random; determinism is only for tests.
-  const host = await createSimHost({ store, rng: Math.random });
+  const host = await createSimHost({ store, rng: Math.random, tickMs: config.tickMs });
 
   const httpServer = createSimHostServer();
   attachWsServer({ server: httpServer, host });

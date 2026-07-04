@@ -25,7 +25,11 @@ export { step } from './environment';
 export type { StepOutcome } from './environment';
 
 // Tuning constants (single source of truth).
-export { REWARDS, RL_DEFAULTS } from './config';
+export { REWARDS, RL_DEFAULTS, WEAR } from './config';
+
+// Visible wear (presentation only — structurally separate from Q-values).
+export { advanceWear, initialWearState, strainDecayPerTick, wearBreakdown } from './wear';
+export type { WearState, WearEvents, WearBreakdown } from './wear';
 
 // The learning agent.
 export { QLearningAgent } from './qLearningAgent';

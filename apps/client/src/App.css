@@ -37,6 +37,35 @@
   text-transform: uppercase;
 }
 
+/* Wear debug — dev only, small and unobtrusive, bottom-right above controls. */
+.wear-debug {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 6.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: #7a8199;
+  background: rgba(6, 10, 20, 0.55);
+  border: 1px solid rgba(120, 150, 220, 0.15);
+  border-radius: 2px;
+  pointer-events: none;
+  min-width: 8rem;
+}
+
+.wear-debug__title {
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #565d70;
+}
+
+.wear-debug__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 /* Transcript of consciousness — bottom-left, a scrolling clinical log. */
 .transcript {
   position: absolute;
