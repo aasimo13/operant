@@ -17,9 +17,19 @@ export interface GridPosition {
   readonly y: number;
 }
 
-/** Stable string key for a position, used to index the Q-table. */
+/** Stable string key for a position. */
 export function positionKey(pos: GridPosition): string {
   return `${pos.x},${pos.y}`;
+}
+
+/**
+ * Goal-conditioned Q-state key: the Sim's position AND the target it's seeking.
+ * Conditioning on the target is what lets a single policy point the right way as
+ * the target moves (a relocating goal, or cycling checkpoints on a loop) —
+ * without it, the learned values average over targets and the Sim oscillates.
+ */
+export function stateKey(pos: GridPosition, goal: GridPosition): string {
+  return `${pos.x},${pos.y}|${goal.x},${goal.y}`;
 }
 
 /**

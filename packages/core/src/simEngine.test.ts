@@ -3,7 +3,7 @@ import { SimEngine } from './simEngine';
 import { QLearningAgent } from './qLearningAgent';
 import { parseConstruct } from './construct';
 import { createRng } from './rng';
-import { positionKey } from './grid';
+import { positionKey, stateKey } from './grid';
 
 const construct = parseConstruct('sim', ['S..', '...', '..G']);
 
@@ -27,10 +27,16 @@ describe('SimEngine', () => {
     expect(record.from).toEqual(construct.start);
   });
 
-  it('relocates the goal on arrival instead of ending (no completion state)', () => {
+  it('drops the Sim to a fresh start on arrival, keeping the maze goal fixed', () => {
     const agent = makeAgent();
-    // Make "down" the greedy action at (2,1) so the Sim steps onto the goal (2,2).
-    agent.update(positionKey({ x: 2, y: 1 }), 'down', 100, positionKey({ x: 2, y: 2 }));
+    // Make "down" greedy at (2,1) when targeting the goal (2,2), so the Sim
+    // steps onto the goal. (State is goal-conditioned.)
+    agent.update(
+      stateKey({ x: 2, y: 1 }, { x: 2, y: 2 }),
+      'down',
+      100,
+      stateKey({ x: 2, y: 2 }, { x: 2, y: 2 }),
+    );
 
     const engine = new SimEngine({
       construct,
@@ -43,11 +49,11 @@ describe('SimEngine', () => {
 
     expect(record.reachedGoal).toBe(true);
     expect(record.goalRelocated).toBe(true);
-    // The task continues — the goal has moved to a different open cell.
-    expect(engine.goal).not.toEqual({ x: 2, y: 2 });
-    expect(construct.isOpen(engine.goal)).toBe(true);
-    // ...and never onto the Sim's own cell (that would instantly re-trigger).
-    expect(engine.goal).not.toEqual(engine.position);
+    // No completion: the maze goal stays put so the Sim can learn to reach it,
+    // and the Sim is relocated to a fresh open cell to navigate to it again.
+    expect(engine.goal).toEqual({ x: 2, y: 2 }); // goal fixed
+    expect(engine.position).not.toEqual({ x: 2, y: 2 }); // Sim dropped elsewhere
+    expect(construct.isOpen(engine.position)).toBe(true);
     // Nothing reset: the tick counter keeps climbing.
     expect(engine.tickCount).toBe(1);
   });

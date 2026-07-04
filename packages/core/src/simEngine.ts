@@ -1,5 +1,5 @@
 import { step } from './environment';
-import { positionKey, type Action, type GridPosition } from './grid';
+import { positionKey, stateKey, type Action, type GridPosition } from './grid';
 import type { Construct } from './construct';
 import type { QLearningAgent } from './qLearningAgent';
 import type { Rng } from './rng';
@@ -134,15 +134,20 @@ export class SimEngine {
   tick(options: { bonusReward?: number } = {}): TickRecord {
     const bonusReward = options.bonusReward ?? 0;
     const from = this.currentPosition;
-    const stateKey = positionKey(from);
-    const action = this.agentRef.chooseAction(stateKey, this.rng);
-    const outcome = step(this.constructRef, from, action, this.currentGoal);
+    const goal = this.currentGoal;
+    // Goal-conditioned state: the policy is chosen and learned for (position,
+    // target), so it points the right way even as the target moves.
+    const stateKeyNow = stateKey(from, goal);
+    const action = this.agentRef.chooseAction(stateKeyNow, this.rng);
+    const outcome = step(this.constructRef, from, action, goal);
 
+    // Bootstrap off the immediate next state under the SAME target (relocation
+    // happens afterward for the next tick), so the update stays coherent.
     this.agentRef.update(
-      stateKey,
+      stateKeyNow,
       action,
       outcome.reward + bonusReward,
-      positionKey(outcome.nextPosition),
+      stateKey(outcome.nextPosition, goal),
     );
     this.currentPosition = outcome.nextPosition;
 
@@ -155,8 +160,12 @@ export class SimEngine {
         this.checkpoint = (this.checkpoint + 1) % checkpoints.length;
         this.currentGoal = checkpoints[this.checkpoint]!;
       } else {
-        // Maze: the single goal relocates to a new open cell.
-        this.currentGoal = this.relocateGoalFn(
+        // Maze: keep the goal FIXED (so the Sim can actually learn to reach it,
+        // rather than chasing a target that teleports every time) and drop the
+        // Sim to a fresh open cell to navigate to it again. This is the proven-
+        // convergent setup — it's what makes the Sim visibly get better instead
+        // of oscillating.
+        this.currentPosition = this.relocateGoalFn(
           this.constructRef,
           this.currentGoal,
           this.currentPosition,

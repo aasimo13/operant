@@ -12,7 +12,7 @@
 export const CORE_VERSION = '0.0.0' as const;
 
 // Grid primitives.
-export { ACTIONS, applyAction, positionKey } from './grid';
+export { ACTIONS, applyAction, positionKey, stateKey } from './grid';
 export type { Action, GridPosition } from './grid';
 
 // Construct (one maze instance) + geometry/solvability helpers.

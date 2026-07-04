@@ -5,7 +5,7 @@ import {
   FIRST_CONSTRUCT,
   THE_TRACK,
   createRng,
-  positionKey,
+  stateKey,
   ACTIONS,
 } from '@operant/core';
 import { SimHost, createSimHost } from './simHost';
@@ -75,7 +75,7 @@ describe('SimHost input application', () => {
   });
 
   it('maps Providence reward/punish to a positive/negative learning nudge', async () => {
-    const startKey = positionKey(FIRST_CONSTRUCT.start);
+    const startKey = stateKey(FIRST_CONSTRUCT.start, FIRST_CONSTRUCT.goal);
     const q = async (input?: 'reward' | 'punish') => {
       const { host, engine } = makeHost(7);
       if (input) host.enqueueInput({ type: 'providence', kind: input });

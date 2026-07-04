@@ -3,7 +3,7 @@ import { SimEngine } from './simEngine';
 import { QLearningAgent } from './qLearningAgent';
 import { parseConstruct } from './construct';
 import { createRng } from './rng';
-import { ACTIONS, positionKey } from './grid';
+import { ACTIONS, positionKey, stateKey } from './grid';
 
 const construct = parseConstruct('inp', ['S..', '.#.', '..G']);
 
@@ -73,7 +73,8 @@ describe('SimEngine.tick with Providence bonus reward', () => {
     expect(recRewarded.action).toBe(recPlain.action);
 
     const idx = ACTIONS.indexOf(recPlain.action);
-    const startKey = positionKey(construct.start);
+    // The first tick updates the goal-conditioned key (start, goal).
+    const startKey = stateKey(construct.start, construct.goal);
     const delta =
       rewarded.agent.getQValues(startKey)[idx]! - plain.agent.getQValues(startKey)[idx]!;
 

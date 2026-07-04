@@ -1,4 +1,5 @@
-import { positionKey } from './grid';
+import { stateKey } from './grid';
+import type { GridPosition } from './grid';
 import type { Construct } from './construct';
 import type { QLearningAgent } from './qLearningAgent';
 
@@ -13,6 +14,7 @@ import type { QLearningAgent } from './qLearningAgent';
 export function bestActionValues(
   construct: Construct,
   agent: QLearningAgent,
+  goal: GridPosition,
 ): Array<Array<number | null>> {
   const grid: Array<Array<number | null>> = [];
   for (let y = 0; y < construct.height; y++) {
@@ -21,7 +23,9 @@ export function bestActionValues(
       if (construct.isWall({ x, y })) {
         row.push(null);
       } else {
-        row.push(Math.max(...agent.getQValues(positionKey({ x, y }))));
+        // Values for the CURRENT target — the heatmap shows how the Sim feels
+        // about each cell given where it's currently headed.
+        row.push(Math.max(...agent.getQValues(stateKey({ x, y }, goal))));
       }
     }
     grid.push(row);

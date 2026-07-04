@@ -97,7 +97,7 @@ export function buildTickMessage(
 }
 
 export function buildHeatmap(engine: SimEngine): HeatmapMessage {
-  return { type: 'heatmap', values: bestActionValues(engine.construct, engine.agent) };
+  return { type: 'heatmap', values: bestActionValues(engine.construct, engine.agent, engine.goal) };
 }
 
 export function buildTransition(engine: SimEngine, wear: WearBreakdown): TransitionMessage {

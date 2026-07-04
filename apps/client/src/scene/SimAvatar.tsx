@@ -71,14 +71,15 @@ export function SimAvatar({
     // whole view doesn't shake with wear.
     worldOut.current.set(wx, 0.5, wz);
 
-    // Subtle, dignified wear: a faint high-frequency tremble that grows with
-    // accumulated history (see CLAUDE.md visible-wear formula).
-    const amp = wear * 0.07;
+    // Subtle, dignified wear: a faint, gentle sway that grows with accumulated
+    // history (see CLAUDE.md visible-wear formula). Kept small and low-frequency
+    // so it reads as weariness, not as being stuck.
+    const amp = wear * 0.03;
     const clock = state.clock.elapsedTime;
     mesh.position.set(
-      wx + Math.sin(clock * 27.3) * amp,
-      0.5 + Math.abs(Math.sin(clock * 41.1)) * amp * 0.5,
-      wz + Math.cos(clock * 31.7) * amp,
+      wx + Math.sin(clock * 9.1) * amp,
+      0.5 + Math.abs(Math.sin(clock * 13.3)) * amp * 0.4,
+      wz + Math.cos(clock * 10.7) * amp,
     );
   });
 
