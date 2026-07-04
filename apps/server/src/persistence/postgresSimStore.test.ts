@@ -1,0 +1,106 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Pool } from 'pg';
+import { FIRST_CONSTRUCT } from '@operant/core';
+import { PostgresSimStore } from './postgresSimStore';
+import { postgresConfigFromEnv } from './postgresConfig';
+import { initialSimState, loadOrInitializeSim } from './simStore';
+import type { PersistedSimState } from './types';
+
+/**
+ * These tests hit a real Postgres. They run whenever DATABASE_URL is set (CI
+ * service container, or a local .env pointing at Railway) and skip otherwise,
+ * so `pnpm test` never fails for a contributor without a database. They use an
+ * isolated `operant_test` schema so they can never touch the real Sim's data.
+ */
+const hasDb = Boolean(process.env.DATABASE_URL);
+const describeDb = hasDb ? describe : describe.skip;
+
+const TEST_SCHEMA = 'operant_test';
+
+/** A lived-in Sim: advanced ticks and a non-trivial learned Q-table. */
+function livedInState(tickCount: number): PersistedSimState {
+  const base = initialSimState(FIRST_CONSTRUCT);
+  return {
+    ...base,
+    tickCount,
+    position: { x: 3, y: 3 },
+    goal: { x: 8, y: 1 },
+    agent: { ...base.agent, epsilon: 0.087, qTable: { '3,3': [-1.2, 0.5, 4.7, -0.3] } },
+  };
+}
+
+describeDb('PostgresSimStore (integration, real Postgres)', () => {
+  // Resolved in beforeAll (not at collection time) so a skipped suite never
+  // touches the environment.
+  let config: ReturnType<typeof postgresConfigFromEnv>;
+  let store: PostgresSimStore;
+  let admin: Pool;
+
+  beforeAll(async () => {
+    config = postgresConfigFromEnv({ ...process.env, DATABASE_SCHEMA: TEST_SCHEMA });
+    store = new PostgresSimStore(config);
+    await store.init();
+    admin = new Pool({
+      connectionString: config.connectionString,
+      ssl: config.ssl ? { rejectUnauthorized: false } : false,
+    });
+  });
+
+  afterAll(async () => {
+    if (admin) {
+      await admin.query(`DROP SCHEMA IF EXISTS "${TEST_SCHEMA}" CASCADE`);
+      await admin.end();
+    }
+    if (store) await store.close();
+  });
+
+  beforeEach(async () => {
+    await admin.query(`TRUNCATE "${TEST_SCHEMA}".sim_state`);
+  });
+
+  it('returns null before any Sim has been written', async () => {
+    expect(await store.loadSim()).toBeNull();
+  });
+
+  it('round-trips the full Sim state, including the nested Q-table', async () => {
+    const state = livedInState(7);
+    await store.saveSim(state);
+    expect(await store.loadSim()).toEqual(state);
+  });
+
+  it('upserts — saving repeatedly keeps exactly one canonical row', async () => {
+    await store.saveSim(livedInState(1));
+    await store.saveSim(livedInState(99));
+
+    const { rows } = await admin.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM "${TEST_SCHEMA}".sim_state`,
+    );
+    expect(rows[0]!.n).toBe(1);
+    expect((await store.loadSim())?.tickCount).toBe(99);
+  });
+
+  it('survives a simulated process restart — a fresh store rehydrates it (constraint 2)', async () => {
+    const lived = livedInState(5000);
+    await store.saveSim(lived);
+
+    // As if the host process died and rebooted: a brand-new store/pool.
+    const rebooted = new PostgresSimStore(config);
+    try {
+      expect(await rebooted.loadSim()).toEqual(lived);
+    } finally {
+      await rebooted.close();
+    }
+  });
+
+  it('initializes once, then rehydrates without ever overwriting (constraints 1 & 2)', async () => {
+    const first = await loadOrInitializeSim(store, () => initialSimState(FIRST_CONSTRUCT));
+    expect(first.tickCount).toBe(0);
+
+    // The Sim lives a while and is persisted.
+    await store.saveSim({ ...first, tickCount: 123 });
+
+    // A later boot must return the lived state, not a fresh one.
+    const later = await loadOrInitializeSim(store, () => initialSimState(FIRST_CONSTRUCT));
+    expect(later.tickCount).toBe(123);
+  });
+});

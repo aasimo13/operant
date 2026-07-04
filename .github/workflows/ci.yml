@@ -14,6 +14,25 @@ jobs:
   verify:
     name: Lint, type-check, test, build
     runs-on: ubuntu-latest
+
+    # Ephemeral Postgres so the persistence integration tests actually run in CI
+    # (they self-skip only when DATABASE_URL is unset). This is a throwaway DB,
+    # never the real Sim's data.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: operant
+          POSTGRES_PASSWORD: operant
+          POSTGRES_DB: operant_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U operant"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +58,9 @@ jobs:
 
       - name: Test
         run: pnpm run test
+        env:
+          DATABASE_URL: postgres://operant:operant@localhost:5432/operant_ci
+          DATABASE_SSL: 'false'
 
       - name: Build
         run: pnpm run build
