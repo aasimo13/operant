@@ -1,7 +1,18 @@
-import type { Construct, GridPosition, SimEngine, TickRecord } from '@operant/core';
+import type {
+  ClientMessage,
+  Construct,
+  ConstructView,
+  SimEngine,
+  SimStateView,
+  TickMessage,
+  TickRecord,
+  WelcomeMessage,
+} from '@operant/core';
 
 /**
- * The WebSocket wire protocol between the simulation host and Observer clients.
+ * Server-side helpers for the WebSocket wire protocol: building outbound
+ * messages from live engine state and validating untrusted inbound frames. The
+ * message *types* are shared via @operant/core so client and server can't drift.
  *
  * Observers are pure spectators of one shared Sim: on connect they get the
  * Construct geometry, the current state, and a *bounded* recent backfill (never
@@ -9,54 +20,17 @@ import type { Construct, GridPosition, SimEngine, TickRecord } from '@operant/co
  * per decision tick. They send only inputs (Providence, Intervene).
  */
 
-/** Static maze geometry, sent once on connect. `walls[y][x]` is true for a wall. */
-export interface ConstructView {
-  readonly id: string;
-  readonly width: number;
-  readonly height: number;
-  readonly walls: boolean[][];
-}
-
-/** The Sim's live, changing state, small enough to broadcast every tick. */
-export interface SimStateView {
-  readonly position: GridPosition;
-  readonly goal: GridPosition;
-  readonly tickCount: number;
-  readonly epsilon: number;
-}
-
-// ─── Server → client ─────────────────────────────────────────────────────────
-
-export interface WelcomeMessage {
-  readonly type: 'welcome';
-  readonly construct: ConstructView;
-  readonly state: SimStateView;
-  readonly recent: TickRecord[];
-}
-
-export interface TickMessage {
-  readonly type: 'tick';
-  readonly state: SimStateView;
-  readonly record: TickRecord;
-}
-
-export type ServerMessage = WelcomeMessage | TickMessage;
-
-// ─── client → server ─────────────────────────────────────────────────────────
-
-/** Reward or punish the Sim — an unexplainable force from its point of view. */
-export interface ProvidenceMessage {
-  readonly type: 'providence';
-  readonly kind: 'reward' | 'punish';
-}
-
-/** Relocate the Sim to a chosen cell — a violation of its own physics. */
-export interface InterveneMessage {
-  readonly type: 'intervene';
-  readonly position: GridPosition;
-}
-
-export type ClientMessage = ProvidenceMessage | InterveneMessage;
+// Re-export the shared wire types so server modules can import them from here.
+export type {
+  ConstructView,
+  SimStateView,
+  WelcomeMessage,
+  TickMessage,
+  ServerMessage,
+  ProvidenceMessage,
+  InterveneMessage,
+  ClientMessage,
+} from '@operant/core';
 
 // ─── builders ────────────────────────────────────────────────────────────────
 

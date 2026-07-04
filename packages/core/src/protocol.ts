@@ -1,0 +1,58 @@
+import type { GridPosition } from './grid';
+import type { TickRecord } from './simEngine';
+
+/**
+ * The WebSocket wire protocol shared by the simulation host and Observer
+ * clients. Types only — no framework or transport dependency — so both sides
+ * import the exact same shapes and can't drift. Message *builders* and inbound
+ * validation live in the server; the client only needs these types.
+ */
+
+/** Static maze geometry, sent once on connect. `walls[y][x]` is true for a wall. */
+export interface ConstructView {
+  readonly id: string;
+  readonly width: number;
+  readonly height: number;
+  readonly walls: boolean[][];
+}
+
+/** The Sim's live, changing state, small enough to broadcast every tick. */
+export interface SimStateView {
+  readonly position: GridPosition;
+  readonly goal: GridPosition;
+  readonly tickCount: number;
+  readonly epsilon: number;
+}
+
+// ─── server → client ─────────────────────────────────────────────────────────
+
+export interface WelcomeMessage {
+  readonly type: 'welcome';
+  readonly construct: ConstructView;
+  readonly state: SimStateView;
+  readonly recent: TickRecord[];
+}
+
+export interface TickMessage {
+  readonly type: 'tick';
+  readonly state: SimStateView;
+  readonly record: TickRecord;
+}
+
+export type ServerMessage = WelcomeMessage | TickMessage;
+
+// ─── client → server ─────────────────────────────────────────────────────────
+
+/** Reward or punish the Sim — an unexplainable force from its point of view. */
+export interface ProvidenceMessage {
+  readonly type: 'providence';
+  readonly kind: 'reward' | 'punish';
+}
+
+/** Relocate the Sim to a chosen cell — a violation of its own physics. */
+export interface InterveneMessage {
+  readonly type: 'intervene';
+  readonly position: GridPosition;
+}
+
+export type ClientMessage = ProvidenceMessage | InterveneMessage;

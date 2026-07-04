@@ -1,7 +1,11 @@
 .app {
-  position: relative;
-  height: 100%;
-  width: 100%;
+  /* Concrete viewport sizing (not a percentage chain) so react-three-fiber
+     measures a non-zero size on first mount and the canvas fills it — otherwise
+     the scene can stay unsized/black until the first window resize. */
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
 }
 
 .app canvas {

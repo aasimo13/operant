@@ -38,3 +38,15 @@ export type { SimEngineOptions, TickRecord, RelocateGoal } from './simEngine';
 // Deterministic randomness.
 export { createRng } from './rng';
 export type { Rng } from './rng';
+
+// Shared WebSocket wire-protocol types (builders/validation live in the server).
+export type {
+  ConstructView,
+  SimStateView,
+  WelcomeMessage,
+  TickMessage,
+  ServerMessage,
+  ProvidenceMessage,
+  InterveneMessage,
+  ClientMessage,
+} from './protocol';

@@ -1,29 +1,29 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { useSimSocket } from './net/useSimSocket';
+import { Scene } from './scene/Scene';
 import { Hud } from './ui/Hud';
-import { SubstrateScaffold } from './scene/SubstrateScaffold';
 import './App.css';
 
+/** The Observer's live WebSocket endpoint (overridable per environment). */
+const WS_URL = import.meta.env.VITE_SIM_WS_URL ?? 'ws://localhost:8787';
+
+/** Decision-tick length in ms — matches the host's SIM_TICK_MS so tweens align. */
+const TICK_MS = 1500;
+
 /**
- * Root of the Observer's view.
- *
- * The 3D scene (a react-three-fiber <Canvas>) is a rendering layer only; it
- * never owns simulation state. Once the simulation host exists (build-order
- * step 4), this connects to the live WebSocket stream and renders what the
- * server broadcasts. For now it shows a placeholder scene under the instrument
- * overlay to prove the pipeline is green.
+ * Root of the Observer's view. Connects to the always-on simulation host and
+ * renders whatever it broadcasts. The 3D scene is a rendering layer only; it
+ * never owns simulation state.
  */
 export function App(): React.JSX.Element {
+  const { state, connected } = useSimSocket(WS_URL);
+
   return (
     <div className="app">
-      <Canvas camera={{ position: [3, 2, 4], fov: 60 }}>
-        <color attach="background" args={['#05060a']} />
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[5, 5, 5]} intensity={1.2} />
-        <SubstrateScaffold />
-        <OrbitControls enablePan={false} />
+      <Canvas shadows camera={{ position: [0, 7, 9], fov: 55 }}>
+        <Scene state={state} tickMs={TICK_MS} />
       </Canvas>
-      <Hud />
+      <Hud connected={connected} tickCount={state.sim?.tickCount ?? null} />
     </div>
   );
 }
