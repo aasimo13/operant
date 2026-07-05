@@ -3,10 +3,15 @@ import { shortestPathLength } from './construct';
 import { THE_TRACK } from './track';
 
 describe('THE_TRACK', () => {
-  it('is a 10x10 circuit with four ordered checkpoints', () => {
-    expect(THE_TRACK.width).toBe(10);
-    expect(THE_TRACK.height).toBe(10);
-    expect(THE_TRACK.checkpoints).toHaveLength(4);
+  it('is a 14x14 circuit with six ordered checkpoints', () => {
+    expect(THE_TRACK.width).toBe(14);
+    expect(THE_TRACK.height).toBe(14);
+    expect(THE_TRACK.checkpoints).toHaveLength(6);
+  });
+
+  it('is a single-lane loop around a solid centre', () => {
+    // 14x14 perimeter ring = 52 open cells; everything else is wall.
+    expect(THE_TRACK.openCells()).toHaveLength(52);
   });
 
   it('every checkpoint is reachable from the start (the loop is navigable)', () => {
