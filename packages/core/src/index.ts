@@ -34,6 +34,10 @@ export { REWARDS, RL_DEFAULTS, WEAR } from './config';
 export { advanceWear, initialWearState, strainDecayPerTick, wearBreakdown } from './wear';
 export type { WearState, WearEvents, WearBreakdown } from './wear';
 
+// The Chronicle — the Sim's accumulated life history (only ever grows).
+export { emptyChronicle, advanceChronicle, enterWorld, RECENT_WORLDS_LIMIT } from './chronicle';
+export type { Chronicle, WorldSojourn, ChronicleEvent } from './chronicle';
+
 // The learning agent.
 export { QLearningAgent } from './qLearningAgent';
 export type { QLearningAgentOptions, QLearningAgentSnapshot } from './qLearningAgent';
@@ -60,6 +64,7 @@ export type {
   NarrationMessage,
   TransitionMessage,
   QueueMessage,
+  ChronicleMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,

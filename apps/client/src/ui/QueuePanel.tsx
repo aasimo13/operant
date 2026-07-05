@@ -7,10 +7,12 @@ export function QueuePanel({
   currentName,
   queue,
   onAuthor,
+  onChronicle,
 }: {
   currentName: string | null;
   queue: string[];
   onAuthor: () => void;
+  onChronicle: () => void;
 }): React.JSX.Element {
   return (
     <div className="queue">
@@ -32,9 +34,14 @@ export function QueuePanel({
         </ol>
       )}
 
-      <button type="button" className="queue__author" onClick={onAuthor}>
-        Author a world
-      </button>
+      <div className="queue__buttons">
+        <button type="button" className="queue__author" onClick={onAuthor}>
+          Author a world
+        </button>
+        <button type="button" className="queue__author" onClick={onChronicle}>
+          The Chronicle
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type {
+  Chronicle,
   ConstructView,
   NarrationLine,
   ServerMessage,
@@ -24,6 +25,8 @@ export interface SimClientState {
   readonly transcript: NarrationLine[];
   /** Names of Observer-authored worlds queued as the Sim's next chapters, in order. */
   readonly queue: string[];
+  /** The Sim's accumulated life history, or null until the first message. */
+  readonly chronicle: Chronicle | null;
 }
 
 export const initialClientState: SimClientState = {
@@ -34,6 +37,7 @@ export const initialClientState: SimClientState = {
   heatmap: null,
   transcript: [],
   queue: [],
+  chronicle: null,
 };
 
 /** Pure reducer: fold a server message into the client state. */
@@ -48,9 +52,12 @@ export function applyServerMessage(state: SimClientState, message: ServerMessage
         heatmap: null, // a fresh snapshot invalidates any stale heatmap
         transcript: message.transcript.slice(-TRANSCRIPT_LIMIT),
         queue: message.queue ?? [], // tolerate an older host that predates the queue
+        chronicle: message.chronicle ?? null,
       };
     case 'queue':
       return { ...state, queue: message.names };
+    case 'chronicle':
+      return { ...state, chronicle: message.chronicle };
     case 'tick':
       return {
         ...state,

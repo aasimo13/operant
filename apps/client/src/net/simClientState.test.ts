@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { emptyChronicle } from '@operant/core';
 import type { TickMessage, TickRecord, WelcomeMessage } from '@operant/core';
 import { applyServerMessage, initialClientState } from './simClientState';
 
@@ -37,6 +38,7 @@ const welcome: WelcomeMessage = {
   recent: [record(1), record(2), record(3)],
   transcript: [{ tick: 2, text: 'a first thought' }],
   queue: [],
+  chronicle: emptyChronicle('The First Construct'),
 };
 
 describe('applyServerMessage', () => {
@@ -160,6 +162,15 @@ describe('applyServerMessage', () => {
       record: record(5),
     });
     expect(s.queue).toEqual(['B']);
+  });
+
+  it('installs the chronicle from the welcome and updates it on chronicle messages', () => {
+    let s = applyServerMessage(initialClientState, welcome);
+    expect(s.chronicle?.worldsEndured).toBe(1);
+    const grown = { ...emptyChronicle('W'), goalsReached: 42, worldsEndured: 3 };
+    s = applyServerMessage(s, { type: 'chronicle', chronicle: grown });
+    expect(s.chronicle?.goalsReached).toBe(42);
+    expect(s.chronicle?.worldsEndured).toBe(3);
   });
 
   it('clears any stale heatmap on a fresh welcome (reconnect)', () => {

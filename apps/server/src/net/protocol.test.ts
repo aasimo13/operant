@@ -6,6 +6,7 @@ import {
   createRng,
   wearBreakdown,
   initialWearState,
+  emptyChronicle,
   type WearBreakdown,
 } from '@operant/core';
 import {
@@ -53,7 +54,8 @@ describe('buildWelcome', () => {
     const e = engine();
     const r1 = e.tick();
     const transcript = [{ tick: 1, text: 'a wall' }];
-    const welcome = buildWelcome(e, wear, [r1], transcript, 'A View', ['Next World']);
+    const chronicle = emptyChronicle('A View');
+    const welcome = buildWelcome(e, wear, [r1], transcript, 'A View', ['Next World'], chronicle);
     expect(welcome.type).toBe('welcome');
     expect(welcome.construct.id).toBe('view');
     expect(welcome.construct.name).toBe('A View');
@@ -61,6 +63,7 @@ describe('buildWelcome', () => {
     expect(welcome.recent).toEqual([r1]);
     expect(welcome.transcript).toEqual(transcript);
     expect(welcome.queue).toEqual(['Next World']);
+    expect(welcome.chronicle).toBe(chronicle);
   });
 });
 

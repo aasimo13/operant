@@ -1,4 +1,5 @@
 import type {
+  Chronicle,
   ConstructDesign,
   GridPosition,
   QLearningAgentSnapshot,
@@ -27,6 +28,8 @@ export interface PersistedSimState {
   readonly currentDesign?: ConstructDesign | null;
   /** Observer-authored worlds queued to become the Sim's next chapters, in order. */
   readonly queue?: ConstructDesign[];
+  /** The Sim's accumulated life history (absent for a Sim that predates it). */
+  readonly chronicle?: Chronicle;
   /** The Sim's current cell. */
   readonly position: GridPosition;
   /** The live goal cell (relocates on arrival — no completion state). */

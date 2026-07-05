@@ -1,5 +1,7 @@
 import { bestActionValues } from '@operant/core';
 import type {
+  Chronicle,
+  ChronicleMessage,
   ClientMessage,
   Construct,
   ConstructView,
@@ -37,6 +39,7 @@ export type {
   NarrationMessage,
   TransitionMessage,
   QueueMessage,
+  ChronicleMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
@@ -84,6 +87,7 @@ export function buildWelcome(
   transcript: NarrationLine[],
   name: string,
   queue: string[],
+  chronicle: Chronicle,
 ): WelcomeMessage {
   return {
     type: 'welcome',
@@ -92,11 +96,16 @@ export function buildWelcome(
     recent,
     transcript,
     queue,
+    chronicle,
   };
 }
 
 export function buildQueue(names: string[]): QueueMessage {
   return { type: 'queue', names };
+}
+
+export function buildChronicle(chronicle: Chronicle): ChronicleMessage {
+  return { type: 'chronicle', chronicle };
 }
 
 export function buildTickMessage(

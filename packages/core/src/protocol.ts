@@ -1,3 +1,4 @@
+import type { Chronicle } from './chronicle';
 import type { ConstructDesign } from './constructDesign';
 import type { GridPosition } from './grid';
 import type { TickRecord } from './simEngine';
@@ -51,12 +52,20 @@ export interface WelcomeMessage {
   readonly transcript: NarrationLine[];
   /** Names of worlds queued to become the Sim's next chapters, in order. */
   readonly queue: string[];
+  /** The Sim's accumulated life history. */
+  readonly chronicle: Chronicle;
 }
 
 /** The queue of Observer-authored worlds changed (submitted, or one drained in). */
 export interface QueueMessage {
   readonly type: 'queue';
   readonly names: string[];
+}
+
+/** The Sim's life history advanced (broadcast periodically and on world changes). */
+export interface ChronicleMessage {
+  readonly type: 'chronicle';
+  readonly chronicle: Chronicle;
 }
 
 export interface TickMessage {
@@ -98,7 +107,8 @@ export type ServerMessage =
   | HeatmapMessage
   | NarrationMessage
   | TransitionMessage
-  | QueueMessage;
+  | QueueMessage
+  | ChronicleMessage;
 
 // ─── client → server ─────────────────────────────────────────────────────────
 

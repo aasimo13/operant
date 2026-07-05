@@ -14,6 +14,7 @@ import { Landing } from './ui/Landing';
 import { RelocateControls } from './ui/RelocateControls';
 import { QueuePanel } from './ui/QueuePanel';
 import { MazeEditor } from './ui/MazeEditor';
+import { ChroniclePanel } from './ui/ChroniclePanel';
 import type { ConstructDesign } from '@operant/core';
 import './App.css';
 
@@ -49,6 +50,7 @@ export function App(): React.JSX.Element {
     [send],
   );
   const [editing, setEditing] = useState(false);
+  const [showChronicle, setShowChronicle] = useState(false);
 
   // A brief "the world reconfigures" flash whenever the Construct changes.
   const prevConstructId = useRef<string | undefined>(undefined);
@@ -98,8 +100,12 @@ export function App(): React.JSX.Element {
         currentName={state.construct?.name ?? null}
         queue={state.queue}
         onAuthor={() => setEditing(true)}
+        onChronicle={() => setShowChronicle(true)}
       />
       {editing && <MazeEditor onSubmit={submitConstruct} onClose={() => setEditing(false)} />}
+      {showChronicle && state.chronicle && (
+        <ChroniclePanel chronicle={state.chronicle} onClose={() => setShowChronicle(false)} />
+      )}
       {import.meta.env.DEV && state.sim && <WearDebug wear={state.sim.wear} />}
       {flashKey > 0 && <div key={flashKey} className="transition-flash" aria-hidden="true" />}
     </div>

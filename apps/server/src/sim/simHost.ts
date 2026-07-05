@@ -7,6 +7,10 @@ import {
   strainDecayPerTick,
   wearBreakdown,
   validateConstructDesign,
+  emptyChronicle,
+  advanceChronicle,
+  enterWorld,
+  type Chronicle,
   type Construct,
   type ConstructDesign,
   type NarrationLine,
@@ -15,6 +19,7 @@ import {
   type WearState,
 } from '@operant/core';
 import {
+  buildChronicle,
   buildHeatmap,
   buildQueue,
   buildTickMessage,
@@ -35,6 +40,9 @@ import { lookupConstruct, constructName } from './constructs';
 
 /** Cap on how many Observer-authored worlds can wait in the queue at once. */
 const MAX_QUEUE = 24;
+
+/** Broadcast the (slowly-changing) Chronicle every N ticks, not every tick. */
+const CHRONICLE_BROADCAST_TICKS = 5;
 
 /** Magnitude of a single Providence nudge folded into the Q-update. Tunable. */
 const PROVIDENCE_REWARD = 10;
@@ -67,6 +75,8 @@ export interface SimHostOptions {
   readonly currentDesign?: ConstructDesign | null;
   /** Queued Observer-authored worlds rehydrated on boot. */
   readonly queueSeed?: ConstructDesign[];
+  /** The Sim's life history rehydrated on boot (else a fresh one is started). */
+  readonly chronicleSeed?: Chronicle;
   readonly recentLimit?: number;
   readonly providenceReward?: number;
   readonly providencePunish?: number;
@@ -113,6 +123,8 @@ export class SimHost {
   private currentDesign: ConstructDesign | null;
   /** Observer-authored worlds waiting to become the Sim's next chapters, in order. */
   private readonly constructQueue: ConstructDesign[];
+  /** The Sim's accumulated life history (only ever grows). */
+  private chronicle: Chronicle;
 
   private running = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -130,6 +142,7 @@ export class SimHost {
     this.currentName = options.constructName;
     this.currentDesign = options.currentDesign ?? null;
     this.constructQueue = options.queueSeed ? [...options.queueSeed] : [];
+    this.chronicle = options.chronicleSeed ?? emptyChronicle(options.constructName);
     if (options.transcriptSeed) this.recentTranscript.push(...options.transcriptSeed);
     this.narrator = new Narrator({
       source: options.narrationSource ?? new CannedNarrationSource(),
@@ -167,7 +180,13 @@ export class SimHost {
       this.transcript(),
       this.currentName,
       this.queueNames(),
+      this.chronicle,
     );
+  }
+
+  /** The Sim's accumulated life history. */
+  lifeChronicle(): Chronicle {
+    return this.chronicle;
   }
 
   /** Names of the worlds queued to become the Sim's next chapters, in order. */
@@ -196,6 +215,13 @@ export class SimHost {
       this.strainDecay,
     );
 
+    // Fold this tick into the Sim's life history (only ever grows).
+    this.chronicle = advanceChronicle(this.chronicle, {
+      record,
+      intervened: inputs.intervened,
+      providence: inputs.providence,
+    });
+
     // A reached goal is a natural chapter boundary: if an Observer has authored
     // the Sim's next world, it enters that world now (carrying its mind in),
     // instead of simply carrying on in this one.
@@ -208,6 +234,11 @@ export class SimHost {
     // tick frame would describe the now-replaced engine, so skip it.
     if (!transitioned) {
       this.broadcast(buildTickMessage(this.engine, wearBreakdown(this.wearState), record));
+    }
+    // The Chronicle changes slowly; broadcast it on a cadence, not every tick.
+    // (A world entry broadcasts it immediately via enterConstruct.)
+    if (!transitioned && this.chronicle.age % CHRONICLE_BROADCAST_TICKS === 0) {
+      this.broadcast(buildChronicle(this.chronicle));
     }
 
     // Fire-and-forget: the narrator may compose a line, but the tick never waits.
@@ -340,8 +371,11 @@ export class SimHost {
     });
     this.currentName = name;
     this.currentDesign = design;
+    // The Sim has been made to live another world — record it, and tell everyone.
+    this.chronicle = enterWorld(this.chronicle, name, this.engine.tickCount);
     this.narrator.announce('constructChanged', this.engine.tickCount, this.engine.position);
     this.broadcast(buildTransition(this.engine, wearBreakdown(this.wearState), name));
+    this.broadcast(buildChronicle(this.chronicle));
   }
 
   private snapshot(): PersistedSimState {
@@ -349,6 +383,7 @@ export class SimHost {
       constructId: this.engine.constructId,
       currentDesign: this.currentDesign,
       queue: [...this.constructQueue],
+      chronicle: this.chronicle,
       position: this.engine.position,
       goal: this.engine.goal,
       tickCount: this.engine.tickCount,
@@ -418,6 +453,11 @@ export async function createSimHost(options: CreateSimHostOptions): Promise<SimH
     tickCount: state.tickCount,
     checkpointIndex: state.checkpointIndex ?? 0,
   });
+  // Rehydrate the Chronicle, or start one for a Sim that predates it — seeding
+  // its age from the real tick count so its lifespan is honest even though the
+  // finer counters can only accumulate from here on.
+  const chronicleSeed = state.chronicle ?? { ...emptyChronicle(name), age: state.tickCount };
+
   return new SimHost({
     engine,
     store: options.store,
@@ -425,6 +465,7 @@ export async function createSimHost(options: CreateSimHostOptions): Promise<SimH
     constructName: name,
     currentDesign: currentDesign && construct !== FIRST_CONSTRUCT ? currentDesign : null,
     queueSeed: state.queue ?? [],
+    chronicleSeed,
     transcriptSeed,
     wearSeed: state.wear ?? initialWearState(),
     narrationSource: options.narrationSource ?? createNarrationSource(),
