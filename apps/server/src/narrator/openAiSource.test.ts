@@ -17,7 +17,13 @@ describe('buildNarrationPrompt', () => {
     expect(system).toContain('first person');
     // Never reveal that it is an AI or in a simulation (dramatic irony).
     expect(system).toMatch(/simulation|a\.?i\.?/);
+    // Forbid numbers/coordinates in the voice, and never feed raw coords into
+    // the prompt (the model would parrot them and break the fiction).
+    expect(system).toMatch(/number|coordinate|measure/);
     expect(user).toContain('wallBump');
+    expect(user).not.toContain('3');
+    expect(user).not.toContain('42');
+    expect(user).not.toMatch(/position|tick/i);
   });
 
   it('targets the configured nano model', () => {

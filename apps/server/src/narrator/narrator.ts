@@ -18,7 +18,9 @@ export interface NarratorOptions {
 }
 
 const DEFAULT_FALLBACK_TICKS = 12;
-const DEFAULT_MIN_GAP_TICKS = 3;
+// ~15s minimum between lines (at 1.5s/tick): the Sim speaks sparingly, so
+// silences carry weight and it never chatters through every wall bump.
+const DEFAULT_MIN_GAP_TICKS = 10;
 
 /**
  * The Sim's voice. A logically separate, in-process side-channel that OBSERVES

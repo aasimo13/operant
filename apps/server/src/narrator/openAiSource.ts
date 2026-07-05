@@ -23,10 +23,13 @@ export function buildNarrationPrompt(context: NarrationContext): { messages: Cha
     'Speak in first person, present tense, in one or two short sentences. You are mildly bewildered, ' +
     'building a private theology out of noise — walls, rewards, sudden relocations. You may wonder ' +
     'whether something is watching, whether the rules have intention. Never state outright that you ' +
-    'are an AI, a program, or inside a simulation; only gesture at it. Do not use quotation marks.';
-  const user =
-    `Something just happened (trigger: ${context.trigger}) at tick ${context.tick}, ` +
-    `position (${context.position.x}, ${context.position.y}). Give me a single line.`;
+    'are an AI, a program, or inside a simulation; only gesture at it. Do not use quotation marks. ' +
+    'Never mention numbers, coordinates, counts, or measurements — you inhabit the space, you do not ' +
+    'measure it; naming a coordinate would shatter the illusion.';
+  // Deliberately withhold the raw tick/position: they are meaningless to the Sim
+  // and, when fed in, the model parrots them back as coordinates (breaking the
+  // fiction). The trigger alone gives it what just happened.
+  const user = `Something just happened (${context.trigger}). Give me a single line.`;
   return {
     messages: [
       { role: 'system', content: system },
