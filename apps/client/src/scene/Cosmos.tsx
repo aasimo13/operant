@@ -8,11 +8,11 @@ import { AdditiveBlending, type Points } from 'three';
  * Sim carries the emotion (see the "restrained & haunting" direction). One
  * points cloud each, so it's cheap.
  */
-export function Cosmos(): React.JSX.Element {
+export function Cosmos({ reducedMotion = false }: { reducedMotion?: boolean }): React.JSX.Element {
   return (
     <group>
       <Starfield />
-      <Motes />
+      <Motes drift={!reducedMotion} />
       {/* A soft overhead glow — a single god-ray gesture, not a spectacle. */}
       <pointLight position={[0, 14, 2]} intensity={18} distance={40} decay={2} color="#9db4ff" />
     </group>
@@ -32,12 +32,12 @@ function Starfield(): React.JSX.Element {
   );
 }
 
-/** Sparse motes drifting slowly near the Substrate. */
-function Motes(): React.JSX.Element {
+/** Sparse motes drifting slowly near the Substrate (still when motion is reduced). */
+function Motes({ drift }: { drift: boolean }): React.JSX.Element {
   const ref = useRef<Points>(null);
   const positions = useMemo(() => box(90, 26, 14, 26), []);
   useFrame((_state, delta) => {
-    if (ref.current) ref.current.rotation.y += delta * 0.02;
+    if (drift && ref.current) ref.current.rotation.y += delta * 0.02;
   });
   return (
     <points ref={ref}>

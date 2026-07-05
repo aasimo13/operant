@@ -22,12 +22,14 @@ export function Scene({
   cameraMode,
   fov,
   onIntervene,
+  reducedMotion = false,
 }: {
   state: SimClientState;
   tickMs: number;
   cameraMode: CameraMode;
   fov: number;
   onIntervene: (cell: Cell) => void;
+  reducedMotion?: boolean;
 }): React.JSX.Element {
   const { construct, sim, lastRecord } = state;
   // The Sim's live world position, written by SimAvatar and read by CameraRig.
@@ -42,7 +44,7 @@ export function Scene({
       {/* A soft fill from below-front so walls and floor don't read as flat black. */}
       <hemisphereLight args={['#8ea6e8', '#0a0e18', 0.35]} />
 
-      <Cosmos />
+      <Cosmos reducedMotion={reducedMotion} />
       {construct && <Substrate construct={construct} />}
       {construct && construct.checkpoints.length > 0 && (
         <CheckpointMarkers
@@ -69,6 +71,7 @@ export function Scene({
             worldOut={simWorld}
             visible={cameraMode !== 'first'}
             wear={sim.wear.wear}
+            reducedMotion={reducedMotion}
           />
           <CameraRig
             mode={cameraMode}

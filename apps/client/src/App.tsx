@@ -16,6 +16,8 @@ import { QueuePanel } from './ui/QueuePanel';
 import { MazeEditor } from './ui/MazeEditor';
 import { ChroniclePanel } from './ui/ChroniclePanel';
 import { SoundToggle } from './ui/SoundToggle';
+import { MotionToggle } from './ui/MotionToggle';
+import { useReducedMotion } from './ui/useReducedMotion';
 import { useSoundscape } from './audio/useSoundscape';
 import type { ConstructDesign } from '@operant/core';
 import './App.css';
@@ -69,6 +71,10 @@ export function App(): React.JSX.Element {
   // Providence — so you feel the others, not just your own hand.
   const pulse = state.providencePulse;
 
+  // Reduced-motion preference (defaults to the system setting): stills the
+  // tremble, drifting motes, edge pulses, and transition flash.
+  const motion = useReducedMotion();
+
   // The synthesized soundscape (opt-in): a drone that strains with wear, plus
   // cues on Providence and wall-bumps.
   const sound = useSoundscape({
@@ -103,6 +109,7 @@ export function App(): React.JSX.Element {
           cameraMode={cameraMode}
           fov={fov}
           onIntervene={intervene}
+          reducedMotion={motion.reduced}
         />
       </Canvas>
       <Hud
@@ -115,6 +122,7 @@ export function App(): React.JSX.Element {
       <RelocateControls currentConstructId={state.construct?.id ?? 'first'} onRelocate={relocate} />
       <ViewControls mode={cameraMode} fov={fov} onModeChange={setCameraMode} onFovChange={setFov} />
       <SoundToggle on={sound.on} onToggle={sound.toggle} />
+      <MotionToggle reduced={motion.reduced} onToggle={motion.toggle} />
       <QueuePanel
         currentName={state.construct?.name ?? null}
         queue={state.queue}
@@ -126,8 +134,10 @@ export function App(): React.JSX.Element {
         <ChroniclePanel chronicle={state.chronicle} onClose={() => setShowChronicle(false)} />
       )}
       {import.meta.env.DEV && state.sim && <WearDebug wear={state.sim.wear} />}
-      {flashKey > 0 && <div key={flashKey} className="transition-flash" aria-hidden="true" />}
-      {pulse && (
+      {!motion.reduced && flashKey > 0 && (
+        <div key={flashKey} className="transition-flash" aria-hidden="true" />
+      )}
+      {!motion.reduced && pulse && (
         <div
           key={pulse.seq}
           className={`providence-pulse providence-pulse--${pulse.kind}`}

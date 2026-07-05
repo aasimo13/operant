@@ -246,6 +246,11 @@
   background: rgba(43, 108, 255, 0.18);
 }
 
+/* Motion toggle sits just left of the sound toggle. */
+.motion-toggle {
+  right: 8.5rem;
+}
+
 .sound-toggle:hover {
   color: #eaf0ff;
   border-color: rgba(120, 150, 220, 0.55);

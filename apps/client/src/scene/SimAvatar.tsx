@@ -20,6 +20,8 @@ export interface SimAvatarProps {
   readonly visible?: boolean;
   /** Accumulated wear 0–1 — drives a subtle tremble, growing with history. */
   readonly wear?: number;
+  /** When true, the wear tremble is stilled (accessibility). */
+  readonly reducedMotion?: boolean;
 }
 
 /**
@@ -40,6 +42,7 @@ export function SimAvatar({
   worldOut,
   visible = true,
   wear = 0,
+  reducedMotion = false,
 }: SimAvatarProps): React.JSX.Element {
   const meshRef = useRef<Mesh>(null);
   const tickStartedAt = useRef(0);
@@ -73,8 +76,8 @@ export function SimAvatar({
 
     // Subtle, dignified wear: a faint, gentle sway that grows with accumulated
     // history (see CLAUDE.md visible-wear formula). Kept small and low-frequency
-    // so it reads as weariness, not as being stuck.
-    const amp = wear * 0.03;
+    // so it reads as weariness, not as being stuck. Stilled under reduced motion.
+    const amp = reducedMotion ? 0 : wear * 0.03;
     const clock = state.clock.elapsedTime;
     mesh.position.set(
       wx + Math.sin(clock * 9.1) * amp,
