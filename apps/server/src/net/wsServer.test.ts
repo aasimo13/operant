@@ -44,6 +44,7 @@ describe('attachWsServer (integration)', () => {
     });
     host = new SimHost({
       engine,
+      constructName: 'Test World',
       rng: createRng(1),
       store: fakeStore(),
       narrationSource: { generate: async () => null },

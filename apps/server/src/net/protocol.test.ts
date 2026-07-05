@@ -29,8 +29,8 @@ function engine(): SimEngine {
 
 describe('buildConstructView', () => {
   it('exposes dimensions and a walls[y][x] grid for rendering', () => {
-    const view = buildConstructView(construct);
-    expect(view).toMatchObject({ id: 'view', width: 3, height: 3 });
+    const view = buildConstructView(construct, 'A View');
+    expect(view).toMatchObject({ id: 'view', name: 'A View', width: 3, height: 3 });
     expect(view.walls[0]).toEqual([false, false, true]); // row 0: S . #
     expect(view.walls[1]).toEqual([false, true, false]); // row 1: . # .
     expect(view.walls[2]![2]).toBe(false); // goal cell is open
@@ -53,12 +53,14 @@ describe('buildWelcome', () => {
     const e = engine();
     const r1 = e.tick();
     const transcript = [{ tick: 1, text: 'a wall' }];
-    const welcome = buildWelcome(e, wear, [r1], transcript);
+    const welcome = buildWelcome(e, wear, [r1], transcript, 'A View', ['Next World']);
     expect(welcome.type).toBe('welcome');
     expect(welcome.construct.id).toBe('view');
+    expect(welcome.construct.name).toBe('A View');
     expect(welcome.state.tickCount).toBe(1);
     expect(welcome.recent).toEqual([r1]);
     expect(welcome.transcript).toEqual(transcript);
+    expect(welcome.queue).toEqual(['Next World']);
   });
 });
 

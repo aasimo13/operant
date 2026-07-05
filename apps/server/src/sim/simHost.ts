@@ -6,6 +6,9 @@ import {
   initialWearState,
   strainDecayPerTick,
   wearBreakdown,
+  validateConstructDesign,
+  type Construct,
+  type ConstructDesign,
   type NarrationLine,
   type Rng,
   type TickRecord,
@@ -13,6 +16,7 @@ import {
 } from '@operant/core';
 import {
   buildHeatmap,
+  buildQueue,
   buildTickMessage,
   buildTransition,
   buildWelcome,
@@ -27,7 +31,10 @@ import { Narrator } from '../narrator/narrator';
 import type { NarrationSource } from '../narrator/source';
 import { CannedNarrationSource } from '../narrator/cannedSource';
 import { createNarrationSource } from '../narrator/narrationFactory';
-import { lookupConstruct } from './constructs';
+import { lookupConstruct, constructName } from './constructs';
+
+/** Cap on how many Observer-authored worlds can wait in the queue at once. */
+const MAX_QUEUE = 24;
 
 /** Magnitude of a single Providence nudge folded into the Q-update. Tunable. */
 const PROVIDENCE_REWARD = 10;
@@ -54,6 +61,12 @@ export interface SimHostOptions {
   readonly store: SimStore;
   /** Random source for building engines on a Construct transition. */
   readonly rng: Rng;
+  /** Human name of the current world. */
+  readonly constructName: string;
+  /** The current world's design, if it is Observer-authored (else null/built-in). */
+  readonly currentDesign?: ConstructDesign | null;
+  /** Queued Observer-authored worlds rehydrated on boot. */
+  readonly queueSeed?: ConstructDesign[];
   readonly recentLimit?: number;
   readonly providenceReward?: number;
   readonly providencePunish?: number;
@@ -95,6 +108,12 @@ export class SimHost {
   private readonly recentTranscript: NarrationLine[] = [];
   private wearState: WearState;
 
+  /** Name of the current world, and its design if Observer-authored (else null). */
+  private currentName: string;
+  private currentDesign: ConstructDesign | null;
+  /** Observer-authored worlds waiting to become the Sim's next chapters, in order. */
+  private readonly constructQueue: ConstructDesign[];
+
   private running = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -108,6 +127,9 @@ export class SimHost {
     this.providencePunish = options.providencePunish ?? PROVIDENCE_PUNISH;
     this.strainDecay = strainDecayPerTick(options.tickMs ?? DEFAULT_TICK_MS);
     this.wearState = options.wearSeed ?? initialWearState();
+    this.currentName = options.constructName;
+    this.currentDesign = options.currentDesign ?? null;
+    this.constructQueue = options.queueSeed ? [...options.queueSeed] : [];
     if (options.transcriptSeed) this.recentTranscript.push(...options.transcriptSeed);
     this.narrator = new Narrator({
       source: options.narrationSource ?? new CannedNarrationSource(),
@@ -143,7 +165,14 @@ export class SimHost {
       wearBreakdown(this.wearState),
       this.recent(),
       this.transcript(),
+      this.currentName,
+      this.queueNames(),
     );
+  }
+
+  /** Names of the worlds queued to become the Sim's next chapters, in order. */
+  queueNames(): string[] {
+    return this.constructQueue.map((d) => d.name);
   }
 
   /** The current value-landscape heatmap (for god-view Observers, on request). */
@@ -167,10 +196,19 @@ export class SimHost {
       this.strainDecay,
     );
 
+    // A reached goal is a natural chapter boundary: if an Observer has authored
+    // the Sim's next world, it enters that world now (carrying its mind in),
+    // instead of simply carrying on in this one.
+    const transitioned = record.reachedGoal && this.constructQueue.length > 0 && this.drainQueue();
+
     await this.store.saveSim(this.snapshot());
 
     this.remember(record);
-    this.broadcast(buildTickMessage(this.engine, wearBreakdown(this.wearState), record));
+    // On a transition the client already got the new world + state; the normal
+    // tick frame would describe the now-replaced engine, so skip it.
+    if (!transitioned) {
+      this.broadcast(buildTickMessage(this.engine, wearBreakdown(this.wearState), record));
+    }
 
     // Fire-and-forget: the narrator may compose a line, but the tick never waits.
     this.narrator.observe({
@@ -222,11 +260,28 @@ export class SimHost {
         providence = input.kind;
       } else if (input.type === 'transitionTo') {
         this.applyTransition(input.constructId);
+      } else if (input.type === 'submitConstruct') {
+        this.enqueueConstruct(input.design);
       }
       // requestHeatmap is handled at the WebSocket layer and never enqueued.
     }
     this.inputQueue.length = 0;
     return { bonus, intervened, providence };
+  }
+
+  /**
+   * Validate and queue an Observer-authored world. Invalid designs (unsolvable,
+   * mis-sized, unnamed) are silently dropped — untrusted input never throws — and
+   * the queue is capped so no one can flood the Sim's future. On success, every
+   * Observer sees the queue grow.
+   */
+  private enqueueConstruct(design: ConstructDesign): void {
+    if (this.constructQueue.length >= MAX_QUEUE) return;
+    const result = validateConstructDesign(design);
+    if (!result.ok) return;
+    // Store the trimmed name; keep the raw rows for faithful rebuilding.
+    this.constructQueue.push({ id: design.id, name: design.name.trim(), rows: [...design.rows] });
+    this.broadcast(buildQueue(this.queueNames()));
   }
 
   /** Record, persist, and broadcast one narrator line. Never blocks the tick. */
@@ -242,14 +297,40 @@ export class SimHost {
   }
 
   /**
-   * Move the Sim into a different Construct (an Observer dropping it into the
-   * track). It carries its learned Q-values across — nothing is erased — and
-   * restarts at the new Construct's entrance. The world visibly changed, so the
-   * narrator gets a dedicated moment and clients are told to reconfigure.
+   * Move the Sim into a built-in Construct by id (an Observer dropping it into
+   * the track/maze). See {@link enterConstruct} for the shared mechanics.
    */
   private applyTransition(constructId: string): void {
-    if (constructId === this.engine.constructId) return; // already there
+    if (constructId === this.engine.constructId && this.currentDesign === null) return; // already there
     const construct = lookupConstruct(constructId);
+    this.enterConstruct(construct, constructName(constructId), null);
+  }
+
+  /**
+   * Pull the next Observer-authored world off the queue and enter it. Returns
+   * false if the (already valid) design somehow fails to rebuild, so the caller
+   * can fall back to normal behavior. Broadcasts the shrunken queue.
+   */
+  private drainQueue(): boolean {
+    const design = this.constructQueue.shift();
+    if (!design) return false;
+    const result = validateConstructDesign(design);
+    if (!result.ok) {
+      this.broadcast(buildQueue(this.queueNames()));
+      return false;
+    }
+    this.enterConstruct(result.construct, design.name, design);
+    this.broadcast(buildQueue(this.queueNames()));
+    return true;
+  }
+
+  /**
+   * Move the Sim into a Construct — built-in or Observer-authored. It carries its
+   * learned Q-values across (nothing is erased) and restarts at the new world's
+   * entrance. The world visibly changed, so the narrator gets a dedicated moment
+   * and clients are told to reconfigure.
+   */
+  private enterConstruct(construct: Construct, name: string, design: ConstructDesign | null): void {
     this.engine = new SimEngine({
       construct,
       agent: this.engine.agent, // same brain — instincts carry over and misfire
@@ -257,13 +338,17 @@ export class SimHost {
       position: construct.start,
       tickCount: this.engine.tickCount,
     });
+    this.currentName = name;
+    this.currentDesign = design;
     this.narrator.announce('constructChanged', this.engine.tickCount, this.engine.position);
-    this.broadcast(buildTransition(this.engine, wearBreakdown(this.wearState)));
+    this.broadcast(buildTransition(this.engine, wearBreakdown(this.wearState), name));
   }
 
   private snapshot(): PersistedSimState {
     return {
       constructId: this.engine.constructId,
+      currentDesign: this.currentDesign,
+      queue: [...this.constructQueue],
       position: this.engine.position,
       goal: this.engine.goal,
       tickCount: this.engine.tickCount,
@@ -303,8 +388,29 @@ export interface CreateSimHostOptions {
 export async function createSimHost(options: CreateSimHostOptions): Promise<SimHost> {
   const state = await loadOrInitializeSim(options.store, () => initialSimState(FIRST_CONSTRUCT));
   const transcriptSeed = await options.store.recentTranscript(DEFAULT_TRANSCRIPT_LIMIT);
+
+  // The current world may be a built-in (looked up by id) or an Observer-authored
+  // one (rebuilt from its persisted design — decoupled from the registry).
+  const currentDesign = state.currentDesign ?? null;
+  let construct: Construct;
+  let name: string;
+  if (currentDesign) {
+    const result = validateConstructDesign(currentDesign);
+    // A persisted design should always be valid; fall back to the first world if not.
+    if (result.ok) {
+      construct = result.construct;
+      name = currentDesign.name;
+    } else {
+      construct = FIRST_CONSTRUCT;
+      name = constructName(FIRST_CONSTRUCT.id);
+    }
+  } else {
+    construct = lookupConstruct(state.constructId);
+    name = constructName(state.constructId);
+  }
+
   const engine = new SimEngine({
-    construct: lookupConstruct(state.constructId),
+    construct,
     agent: QLearningAgent.deserialize(state.agent),
     rng: options.rng,
     position: state.position,
@@ -316,6 +422,9 @@ export async function createSimHost(options: CreateSimHostOptions): Promise<SimH
     engine,
     store: options.store,
     rng: options.rng,
+    constructName: name,
+    currentDesign: currentDesign && construct !== FIRST_CONSTRUCT ? currentDesign : null,
+    queueSeed: state.queue ?? [],
     transcriptSeed,
     wearSeed: state.wear ?? initialWearState(),
     narrationSource: options.narrationSource ?? createNarrationSource(),

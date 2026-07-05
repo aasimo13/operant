@@ -31,6 +31,8 @@ export interface SimStore {
 export function initialSimState(construct: Construct): PersistedSimState {
   return {
     constructId: construct.id,
+    currentDesign: null,
+    queue: [],
     position: construct.start,
     goal: construct.goal,
     tickCount: 0,

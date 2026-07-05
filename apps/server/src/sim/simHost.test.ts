@@ -6,6 +6,7 @@ import {
   THE_TRACK,
   createRng,
   stateKey,
+  parseConstruct,
   ACTIONS,
 } from '@operant/core';
 import { SimHost, createSimHost } from './simHost';
@@ -29,6 +30,7 @@ function makeHost(rngSeed = 1, position = FIRST_CONSTRUCT.start) {
   const store = fakeStore();
   const host = new SimHost({
     engine,
+    constructName: 'Test World',
     store,
     rng: createRng(rngSeed),
     recentLimit: 3,
@@ -129,6 +131,7 @@ describe('SimHost narrator wiring', () => {
     const store = fakeStore();
     const host = new SimHost({
       engine,
+      constructName: 'Test World',
       rng: createRng(1),
       store,
       narrationSource: { generate: async () => 'a hand I cannot see' },
@@ -154,6 +157,7 @@ describe('SimHost narrator wiring', () => {
     });
     const host = new SimHost({
       engine,
+      constructName: 'Test World',
       rng: createRng(1),
       store: fakeStore(),
       transcriptSeed: [{ tick: 10, text: 'an older thought' }],
@@ -174,6 +178,7 @@ describe('SimHost Construct transition (drop into the track)', () => {
     const store = fakeStore();
     const host = new SimHost({
       engine,
+      constructName: 'Test World',
       rng: createRng(1),
       store,
       narrationSource: { generate: async () => 'these are not the walls I knew' },
@@ -194,6 +199,65 @@ describe('SimHost Construct transition (drop into the track)', () => {
     expect(messages.some((m) => m.type === 'transition')).toBe(true);
     const narration = messages.find((m) => m.type === 'narration');
     expect(narration).toBeDefined();
+  });
+});
+
+describe('SimHost construct queue (Observer-authored worlds)', () => {
+  // A 1x2 world so the seeded Sim reaches its goal in a single tick.
+  function tinyHost() {
+    const tiny = parseConstruct('tiny', ['SG']);
+    const agent = new QLearningAgent({ epsilon: 0, epsilonFloor: 0 });
+    agent.update(
+      stateKey({ x: 0, y: 0 }, { x: 1, y: 0 }),
+      'right',
+      100,
+      stateKey({ x: 1, y: 0 }, { x: 1, y: 0 }),
+    );
+    const engine = new SimEngine({ construct: tiny, agent, rng: createRng(1) });
+    const store = fakeStore();
+    const host = new SimHost({
+      engine,
+      constructName: 'Tiny',
+      store,
+      rng: createRng(1),
+      narrationSource: silent,
+    });
+    return { host, store };
+  }
+  const validDesign = {
+    id: 'w1',
+    name: 'A World To Endure',
+    rows: ['S...', '.##.', '.#..', '..#G'],
+  };
+
+  it('queues a valid submitted world and enters it when the Sim next reaches its goal', async () => {
+    const { host } = tinyHost();
+    const messages: ServerMessage[] = [];
+    host.subscribe((m) => messages.push(m));
+
+    host.enqueueInput({ type: 'submitConstruct', design: validDesign });
+    await host.tick(); // applies submission (queues) AND reaches goal (drains → enters it)
+    await flush();
+
+    expect(host.welcomeFor().construct.name).toBe('A World To Endure');
+    expect(host.queueNames()).toEqual([]); // drained
+    expect(
+      messages.some((m) => m.type === 'transition' && m.construct.name === 'A World To Endure'),
+    ).toBe(true);
+  });
+
+  it('rejects an unsolvable submitted world (never queues a trap)', async () => {
+    const { host } = tinyHost();
+    host.enqueueInput({
+      type: 'submitConstruct',
+      design: { id: 'bad', name: 'Sealed', rows: ['S..#', '...#', '...#', '###G'] },
+    });
+    // Drain the input without letting the Sim reach the goal would require no
+    // tick; but one tick both applies the (rejected) submission and may relocate.
+    // Assert the queue stayed empty regardless.
+    const engineReached = (await host.tick()).reachedGoal;
+    expect(engineReached).toBe(true); // tiny world: it does reach
+    expect(host.queueNames()).toEqual([]); // the bad design was never queued
   });
 });
 

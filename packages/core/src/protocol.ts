@@ -1,3 +1,4 @@
+import type { ConstructDesign } from './constructDesign';
 import type { GridPosition } from './grid';
 import type { TickRecord } from './simEngine';
 import type { WearBreakdown } from './wear';
@@ -12,6 +13,8 @@ import type { WearBreakdown } from './wear';
 /** Static geometry, sent on connect (and on transition). `walls[y][x]` = wall. */
 export interface ConstructView {
   readonly id: string;
+  /** Human name of this world (a built-in's title, or an Observer's chosen name). */
+  readonly name: string;
   readonly width: number;
   readonly height: number;
   readonly walls: boolean[][];
@@ -46,6 +49,14 @@ export interface WelcomeMessage {
   readonly recent: TickRecord[];
   /** Bounded recent narrator lines — not the whole lifetime (constraint 16). */
   readonly transcript: NarrationLine[];
+  /** Names of worlds queued to become the Sim's next chapters, in order. */
+  readonly queue: string[];
+}
+
+/** The queue of Observer-authored worlds changed (submitted, or one drained in). */
+export interface QueueMessage {
+  readonly type: 'queue';
+  readonly names: string[];
 }
 
 export interface TickMessage {
@@ -82,7 +93,12 @@ export interface TransitionMessage {
 }
 
 export type ServerMessage =
-  WelcomeMessage | TickMessage | HeatmapMessage | NarrationMessage | TransitionMessage;
+  | WelcomeMessage
+  | TickMessage
+  | HeatmapMessage
+  | NarrationMessage
+  | TransitionMessage
+  | QueueMessage;
 
 // ─── client → server ─────────────────────────────────────────────────────────
 
@@ -109,5 +125,15 @@ export interface TransitionRequestMessage {
   readonly constructId: string;
 }
 
+/** Submit an Observer-authored world to queue as the Sim's next chapter. */
+export interface SubmitConstructMessage {
+  readonly type: 'submitConstruct';
+  readonly design: ConstructDesign;
+}
+
 export type ClientMessage =
-  ProvidenceMessage | InterveneMessage | HeatmapRequestMessage | TransitionRequestMessage;
+  | ProvidenceMessage
+  | InterveneMessage
+  | HeatmapRequestMessage
+  | TransitionRequestMessage
+  | SubmitConstructMessage;

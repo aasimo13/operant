@@ -19,7 +19,14 @@ function record(tick: number): TickRecord {
 
 const welcome: WelcomeMessage = {
   type: 'welcome',
-  construct: { id: 'first', width: 2, height: 1, walls: [[false, false]], checkpoints: [] },
+  construct: {
+    id: 'first',
+    name: 'The First Construct',
+    width: 2,
+    height: 1,
+    walls: [[false, false]],
+    checkpoints: [],
+  },
   state: {
     position: { x: 0, y: 0 },
     goal: { x: 1, y: 0 },
@@ -29,6 +36,7 @@ const welcome: WelcomeMessage = {
   },
   recent: [record(1), record(2), record(3)],
   transcript: [{ tick: 2, text: 'a first thought' }],
+  queue: [],
 };
 
 describe('applyServerMessage', () => {
@@ -114,6 +122,7 @@ describe('applyServerMessage', () => {
       type: 'transition',
       construct: {
         id: 'track',
+        name: 'The Circuit',
         width: 3,
         height: 1,
         walls: [[false, false, false]],
@@ -131,6 +140,26 @@ describe('applyServerMessage', () => {
     expect(s.construct?.checkpoints).toHaveLength(1);
     expect(s.sim?.goal).toEqual({ x: 2, y: 0 });
     expect(s.heatmap).toBeNull(); // stale heatmap invalidated by the new world
+  });
+
+  it('tracks the world queue from the welcome and queue updates', () => {
+    let s = applyServerMessage(initialClientState, { ...welcome, queue: ['A', 'B'] });
+    expect(s.queue).toEqual(['A', 'B']);
+    s = applyServerMessage(s, { type: 'queue', names: ['B'] });
+    expect(s.queue).toEqual(['B']);
+    // a tick doesn't disturb the queue
+    s = applyServerMessage(s, {
+      type: 'tick',
+      state: {
+        position: { x: 1, y: 0 },
+        goal: { x: 1, y: 0 },
+        tickCount: 5,
+        epsilon: 0.1,
+        wear: WEAR0,
+      },
+      record: record(5),
+    });
+    expect(s.queue).toEqual(['B']);
   });
 
   it('clears any stale heatmap on a fresh welcome (reconnect)', () => {

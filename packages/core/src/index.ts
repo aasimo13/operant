@@ -18,6 +18,8 @@ export type { Action, GridPosition } from './grid';
 // Construct (one maze instance) + geometry/solvability helpers.
 export { parseConstruct, shortestPathLength } from './construct';
 export type { Construct } from './construct';
+export { validateConstructDesign, DESIGN_LIMITS } from './constructDesign';
+export type { ConstructDesign, ValidationResult } from './constructDesign';
 export { FIRST_CONSTRUCT } from './firstConstruct';
 export { THE_TRACK } from './track';
 
@@ -57,10 +59,12 @@ export type {
   NarrationLine,
   NarrationMessage,
   TransitionMessage,
+  QueueMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
   HeatmapRequestMessage,
   TransitionRequestMessage,
+  SubmitConstructMessage,
   ClientMessage,
 } from './protocol';

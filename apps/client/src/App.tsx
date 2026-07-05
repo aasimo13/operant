@@ -12,6 +12,9 @@ import { TranscriptPanel } from './ui/TranscriptPanel';
 import { WearDebug } from './ui/WearDebug';
 import { Landing } from './ui/Landing';
 import { RelocateControls } from './ui/RelocateControls';
+import { QueuePanel } from './ui/QueuePanel';
+import { MazeEditor } from './ui/MazeEditor';
+import type { ConstructDesign } from '@operant/core';
 import './App.css';
 
 /** The Observer's live WebSocket endpoint (overridable per environment). */
@@ -41,6 +44,11 @@ export function App(): React.JSX.Element {
     (constructId: string) => send({ type: 'transitionTo', constructId }),
     [send],
   );
+  const submitConstruct = useCallback(
+    (design: ConstructDesign) => send({ type: 'submitConstruct', design }),
+    [send],
+  );
+  const [editing, setEditing] = useState(false);
 
   // A brief "the world reconfigures" flash whenever the Construct changes.
   const prevConstructId = useRef<string | undefined>(undefined);
@@ -86,6 +94,12 @@ export function App(): React.JSX.Element {
       <ProvidenceControls onReward={reward} onPunish={punish} />
       <RelocateControls currentConstructId={state.construct?.id ?? 'first'} onRelocate={relocate} />
       <ViewControls mode={cameraMode} fov={fov} onModeChange={setCameraMode} onFovChange={setFov} />
+      <QueuePanel
+        currentName={state.construct?.name ?? null}
+        queue={state.queue}
+        onAuthor={() => setEditing(true)}
+      />
+      {editing && <MazeEditor onSubmit={submitConstruct} onClose={() => setEditing(false)} />}
       {import.meta.env.DEV && state.sim && <WearDebug wear={state.sim.wear} />}
       {flashKey > 0 && <div key={flashKey} className="transition-flash" aria-hidden="true" />}
     </div>

@@ -219,6 +219,255 @@
   font-size: 0.7rem;
 }
 
+/* Queue — the current world + Observer-authored worlds to come, top-left under the HUD. */
+.queue {
+  position: absolute;
+  top: 5.5rem;
+  left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  max-width: 15rem;
+  pointer-events: auto;
+}
+
+.queue__now {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.queue__label {
+  font-size: 0.55rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #565d70;
+}
+
+.queue__world {
+  font-size: 0.95rem;
+  color: #d7def2;
+  letter-spacing: 0.02em;
+  max-width: 15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 15rem;
+}
+
+.queue__item {
+  font-size: 0.7rem;
+  color: #8b93ac;
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue__ordinal {
+  color: #4a6bd0;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue__author {
+  margin-top: 0.2rem;
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #aeb6cc;
+  background: rgba(12, 18, 34, 0.6);
+  border: 1px solid rgba(120, 150, 220, 0.28);
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.queue__author:hover {
+  color: #eaf0ff;
+  border-color: rgba(120, 150, 220, 0.6);
+}
+
+.queue__author:focus-visible {
+  outline: 2px solid #6b8cff;
+  outline-offset: 2px;
+}
+
+/* Maze editor — a modal where an Observer authors the Sim's next world. */
+.ed-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 6, 12, 0.82);
+  backdrop-filter: blur(3px);
+  pointer-events: auto;
+}
+
+.ed-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.6rem;
+  width: min(92vw, 30rem);
+  background: #0b1020;
+  border: 1px solid rgba(120, 150, 220, 0.25);
+  border-radius: 6px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.ed-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ed-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #e6ebf9;
+}
+
+.ed-sub {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #7a839c;
+  line-height: 1.4;
+}
+
+.ed-grid {
+  display: grid;
+  gap: 2px;
+  aspect-ratio: 1;
+  width: 100%;
+  background: rgba(120, 150, 220, 0.12);
+  padding: 2px;
+  border-radius: 3px;
+  touch-action: none;
+}
+
+.ed-cell {
+  border: none;
+  padding: 0;
+  aspect-ratio: 1;
+  background: #141c33;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.ed-cell:hover {
+  background: #1d2848;
+}
+
+.ed-cell--wall {
+  background: #2b3a63;
+}
+
+.ed-cell--start {
+  background: #3f7dff;
+}
+
+.ed-cell--goal {
+  background: #ffcf5a;
+}
+
+.ed-tools {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.ed-tool {
+  flex: 1;
+  padding: 0.45rem;
+  font: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aeb6cc;
+  background: rgba(12, 18, 34, 0.6);
+  border: 1px solid rgba(120, 150, 220, 0.22);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.ed-tool[aria-pressed='true'] {
+  color: #eef1fa;
+  border-color: #6b8cff;
+  background: rgba(43, 108, 255, 0.18);
+}
+
+.ed-name {
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #e6ebf9;
+  background: rgba(6, 10, 20, 0.8);
+  border: 1px solid rgba(120, 150, 220, 0.28);
+  border-radius: 3px;
+}
+
+.ed-name:focus-visible {
+  outline: none;
+  border-color: #6b8cff;
+}
+
+.ed-status {
+  margin: 0;
+  font-size: 0.68rem;
+  color: #7a839c;
+  min-height: 1rem;
+}
+
+.ed-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.ed-btn {
+  padding: 0.5rem 1.1rem;
+  font: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aeb6cc;
+  background: rgba(12, 18, 34, 0.6);
+  border: 1px solid rgba(120, 150, 220, 0.25);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.ed-btn--primary {
+  color: #eef1fa;
+  border-color: #6b8cff;
+  background: rgba(43, 108, 255, 0.22);
+}
+
+.ed-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Relocate — move the Sim between Constructs (maze ⇄ track), top-right below Providence. */
 .relocate {
   position: absolute;

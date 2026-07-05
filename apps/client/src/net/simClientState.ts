@@ -22,6 +22,8 @@ export interface SimClientState {
   readonly heatmap: Array<Array<number | null>> | null;
   /** The Sim's transcript of consciousness (narrator lines), oldest first. */
   readonly transcript: NarrationLine[];
+  /** Names of Observer-authored worlds queued as the Sim's next chapters, in order. */
+  readonly queue: string[];
 }
 
 export const initialClientState: SimClientState = {
@@ -31,6 +33,7 @@ export const initialClientState: SimClientState = {
   recent: [],
   heatmap: null,
   transcript: [],
+  queue: [],
 };
 
 /** Pure reducer: fold a server message into the client state. */
@@ -44,7 +47,10 @@ export function applyServerMessage(state: SimClientState, message: ServerMessage
         lastRecord: message.recent.at(-1) ?? null,
         heatmap: null, // a fresh snapshot invalidates any stale heatmap
         transcript: message.transcript.slice(-TRANSCRIPT_LIMIT),
+        queue: message.queue ?? [], // tolerate an older host that predates the queue
       };
+    case 'queue':
+      return { ...state, queue: message.names };
     case 'tick':
       return {
         ...state,

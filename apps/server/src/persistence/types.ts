@@ -1,4 +1,9 @@
-import type { GridPosition, QLearningAgentSnapshot, WearState } from '@operant/core';
+import type {
+  ConstructDesign,
+  GridPosition,
+  QLearningAgentSnapshot,
+  WearState,
+} from '@operant/core';
 
 /**
  * The full canonical state of the one persistent Sim, as written to storage.
@@ -13,8 +18,15 @@ import type { GridPosition, QLearningAgentSnapshot, WearState } from '@operant/c
  * separate from the Q-values regardless.
  */
 export interface PersistedSimState {
-  /** Which Construct the Sim is currently in (e.g. 'first'). */
+  /** Which built-in Construct the Sim is in (e.g. 'first'); ignored if currentDesign is set. */
   readonly constructId: string;
+  /**
+   * The current world's design when it is Observer-authored (rebuilt on boot,
+   * decoupled from the code registry); null/absent for a built-in Construct.
+   */
+  readonly currentDesign?: ConstructDesign | null;
+  /** Observer-authored worlds queued to become the Sim's next chapters, in order. */
+  readonly queue?: ConstructDesign[];
   /** The Sim's current cell. */
   readonly position: GridPosition;
   /** The live goal cell (relocates on arrival — no completion state). */

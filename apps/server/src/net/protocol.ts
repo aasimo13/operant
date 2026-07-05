@@ -5,6 +5,7 @@ import type {
   ConstructView,
   HeatmapMessage,
   NarrationLine,
+  QueueMessage,
   SimEngine,
   SimStateView,
   TickMessage,
@@ -35,17 +36,19 @@ export type {
   NarrationLine,
   NarrationMessage,
   TransitionMessage,
+  QueueMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
   HeatmapRequestMessage,
   TransitionRequestMessage,
+  SubmitConstructMessage,
   ClientMessage,
 } from '@operant/core';
 
 // ─── builders ────────────────────────────────────────────────────────────────
 
-export function buildConstructView(construct: Construct): ConstructView {
+export function buildConstructView(construct: Construct, name: string): ConstructView {
   const walls: boolean[][] = [];
   for (let y = 0; y < construct.height; y++) {
     const row: boolean[] = [];
@@ -56,6 +59,7 @@ export function buildConstructView(construct: Construct): ConstructView {
   }
   return {
     id: construct.id,
+    name,
     width: construct.width,
     height: construct.height,
     walls,
@@ -78,14 +82,21 @@ export function buildWelcome(
   wear: WearBreakdown,
   recent: TickRecord[],
   transcript: NarrationLine[],
+  name: string,
+  queue: string[],
 ): WelcomeMessage {
   return {
     type: 'welcome',
-    construct: buildConstructView(engine.construct),
+    construct: buildConstructView(engine.construct, name),
     state: buildStateView(engine, wear),
     recent,
     transcript,
+    queue,
   };
+}
+
+export function buildQueue(names: string[]): QueueMessage {
+  return { type: 'queue', names };
 }
 
 export function buildTickMessage(
@@ -100,10 +111,14 @@ export function buildHeatmap(engine: SimEngine): HeatmapMessage {
   return { type: 'heatmap', values: bestActionValues(engine.construct, engine.agent, engine.goal) };
 }
 
-export function buildTransition(engine: SimEngine, wear: WearBreakdown): TransitionMessage {
+export function buildTransition(
+  engine: SimEngine,
+  wear: WearBreakdown,
+  name: string,
+): TransitionMessage {
   return {
     type: 'transition',
-    construct: buildConstructView(engine.construct),
+    construct: buildConstructView(engine.construct, name),
     state: buildStateView(engine, wear),
   };
 }
@@ -150,6 +165,23 @@ export function parseClientMessage(raw: string): ClientMessage | null {
     msg.constructId !== ''
   ) {
     return { type: 'transitionTo', constructId: msg.constructId };
+  }
+
+  if (msg.type === 'submitConstruct' && typeof msg.design === 'object' && msg.design !== null) {
+    const d = msg.design as Record<string, unknown>;
+    // Shape check only — semantic validation (solvable, sized, named) happens in
+    // the host via validateConstructDesign before anything is queued.
+    if (
+      typeof d.id === 'string' &&
+      typeof d.name === 'string' &&
+      Array.isArray(d.rows) &&
+      d.rows.every((r) => typeof r === 'string')
+    ) {
+      return {
+        type: 'submitConstruct',
+        design: { id: d.id, name: d.name, rows: d.rows as string[] },
+      };
+    }
   }
 
   return null;
