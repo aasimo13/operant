@@ -12,6 +12,21 @@ import type { PersistedSimState } from './types';
  * engineering standards). The Postgres implementation lives alongside; tests
  * can swap in an in-memory fake.
  */
+/** A compacted era of old transcript lines — the deep past, summarized. */
+export interface TranscriptEpoch {
+  readonly fromTick: number;
+  readonly toTick: number;
+  readonly lineCount: number;
+  /** A few representative lines kept for flavor (e.g. the era's first and last). */
+  readonly sample: string[];
+}
+
+/** How many raw lines were folded away, and into how many epochs. */
+export interface CompactionResult {
+  readonly epochsCreated: number;
+  readonly linesCompacted: number;
+}
+
 export interface SimStore {
   /** Idempotently prepare storage (create tables/schema if missing). */
   init(): Promise<void>;
@@ -23,6 +38,14 @@ export interface SimStore {
   appendTranscript(line: NarrationLine): Promise<void>;
   /** The most recent `limit` transcript lines, oldest first (for backfill). */
   recentTranscript(limit: number): Promise<NarrationLine[]>;
+  /**
+   * Keep the newest `retainRaw` transcript lines raw and fold everything older
+   * into `epochSize`-line aggregate epochs, bounding the raw table without ever
+   * erasing the past (constraint 15). Idempotent and safe to run repeatedly.
+   */
+  compactTranscript(opts: { retainRaw: number; epochSize: number }): Promise<CompactionResult>;
+  /** The most recent compacted epochs, oldest first (the deep past). */
+  recentEpochs(limit: number): Promise<TranscriptEpoch[]>;
   /** Release resources (connection pool). */
   close(): Promise<void>;
 }

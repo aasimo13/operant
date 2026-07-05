@@ -55,7 +55,9 @@ describeDb('PostgresSimStore (integration, real Postgres)', () => {
   });
 
   beforeEach(async () => {
-    await admin.query(`TRUNCATE "${TEST_SCHEMA}".sim_state, "${TEST_SCHEMA}".transcript`);
+    await admin.query(
+      `TRUNCATE "${TEST_SCHEMA}".sim_state, "${TEST_SCHEMA}".transcript, "${TEST_SCHEMA}".transcript_epoch`,
+    );
   });
 
   it('returns null before any Sim has been written', async () => {
@@ -103,6 +105,30 @@ describeDb('PostgresSimStore (integration, real Postgres)', () => {
       { tick: 4, text: 'line 4' },
       { tick: 5, text: 'line 5' },
     ]);
+  });
+
+  it('compacts old transcript lines into epochs, keeping a recent raw window (constraint 15)', async () => {
+    for (let i = 1; i <= 12; i++) await store.appendTranscript({ tick: i, text: `line ${i}` });
+
+    // retain the newest 4 raw; fold the rest into epochs of 3 → 8 compactable → 2 epochs (6 lines).
+    const result = await store.compactTranscript({ retainRaw: 4, epochSize: 3 });
+    expect(result).toEqual({ epochsCreated: 2, linesCompacted: 6 });
+
+    // The raw table now holds only the newest 6 lines (nothing newer was touched).
+    const recent = await store.recentTranscript(100);
+    expect(recent.map((r) => r.tick)).toEqual([7, 8, 9, 10, 11, 12]);
+
+    // The oldest 6 lines survive as two summarized epochs (not erased).
+    expect(await store.recentEpochs(10)).toEqual([
+      { fromTick: 1, toTick: 3, lineCount: 3, sample: ['line 1', 'line 3'] },
+      { fromTick: 4, toTick: 6, lineCount: 3, sample: ['line 4', 'line 6'] },
+    ]);
+
+    // Running again is a no-op while too little is compactable — no over-compaction.
+    expect(await store.compactTranscript({ retainRaw: 4, epochSize: 3 })).toEqual({
+      epochsCreated: 0,
+      linesCompacted: 0,
+    });
   });
 
   it('initializes once, then rehydrates without ever overwriting (constraints 1 & 2)', async () => {

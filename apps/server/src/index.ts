@@ -38,9 +38,28 @@ async function main(): Promise<void> {
 
   host.start(config.tickMs);
 
+  // Log-compaction: the Sim writes a transcript line whenever it speaks, forever.
+  // Periodically fold the older lines into per-epoch aggregates so the raw table
+  // stays bounded without ever erasing the past (constraint 15).
+  const COMPACT_INTERVAL_MS = 30 * 60 * 1000; // every 30 minutes
+  const compactTimer = setInterval(() => {
+    void store
+      .compactTranscript({ retainRaw: 2000, epochSize: 500 })
+      .then((r) => {
+        if (r.linesCompacted > 0) {
+          console.log(
+            `[operant] compacted ${r.linesCompacted} transcript lines into ${r.epochsCreated} epoch(s)`,
+          );
+        }
+      })
+      .catch((error: unknown) => console.error('[operant] transcript compaction failed:', error));
+  }, COMPACT_INTERVAL_MS);
+  compactTimer.unref?.(); // never keep the process alive just for compaction
+
   const shutdown = (signal: string) => {
     console.log(`[operant] ${signal} received — stopping the Sim's clock and closing cleanly.`);
     host.stop();
+    clearInterval(compactTimer);
     httpServer.close();
     void store.close().finally(() => process.exit(0));
   };

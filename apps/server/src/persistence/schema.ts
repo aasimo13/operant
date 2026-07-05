@@ -26,5 +26,16 @@ export function schemaDdl(schema: string): string {
       text       text        NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
+    -- Older transcript lines are folded into per-epoch aggregates (never simply
+    -- deleted — CLAUDE.md constraints 1 & 15), so the raw table stays bounded on
+    -- the always-on Sim while the deep past survives as a summary you can still read.
+    CREATE TABLE IF NOT EXISTS "${schema}".transcript_epoch (
+      id         bigserial   PRIMARY KEY,
+      from_tick  integer     NOT NULL,
+      to_tick    integer     NOT NULL,
+      line_count integer     NOT NULL,
+      sample     text[]      NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
   `;
 }
