@@ -28,8 +28,15 @@ export function buildNarrationPrompt(context: NarrationContext): { messages: Cha
     'measure it; naming a coordinate would shatter the illusion.';
   // Deliberately withhold the raw tick/position: they are meaningless to the Sim
   // and, when fed in, the model parrots them back as coordinates (breaking the
-  // fiction). The trigger alone gives it what just happened.
-  const user = `Something just happened (${context.trigger}). Give me a single line.`;
+  // fiction). The trigger alone gives it what just happened; the memory (also
+  // number-free) lets older history occasionally surface so it reads as one
+  // continuous mind, not a thing reacting only to the instant.
+  const memory = context.memory?.trim();
+  const user =
+    `Something just happened (${context.trigger}). Give me a single line.` +
+    (memory
+      ? ` ${memory} Let this older memory colour the line only when it feels true — usually leave it beneath the surface.`
+      : '');
   return {
     messages: [
       { role: 'system', content: system },

@@ -26,6 +26,22 @@ describe('buildNarrationPrompt', () => {
     expect(user).not.toMatch(/position|tick/i);
   });
 
+  it('weaves in a memory when present, and omits the framing when absent', () => {
+    const withMem = buildNarrationPrompt({
+      trigger: 'idle',
+      tick: 1,
+      position: { x: 0, y: 0 },
+      memory: 'What you carry: You have known more than one world.',
+    });
+    const u1 = withMem.messages.find((m) => m.role === 'user')!.content;
+    expect(u1).toContain('You have known more than one world');
+    expect(u1).toMatch(/only when it feels true/i);
+
+    const without = buildNarrationPrompt({ trigger: 'idle', tick: 1, position: { x: 0, y: 0 } });
+    const u2 = without.messages.find((m) => m.role === 'user')!.content;
+    expect(u2).not.toMatch(/feels true/i);
+  });
+
   it('targets the configured nano model', () => {
     expect(NARRATION_MODEL).toBe('gpt-4.1-nano');
   });

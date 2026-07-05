@@ -6,6 +6,8 @@ export interface NarrationContext {
   readonly trigger: NarrationTrigger;
   readonly tick: number;
   readonly position: GridPosition;
+  /** A qualitative memory of the Sim's life it may draw on (may be empty). */
+  readonly memory?: string;
 }
 
 /**

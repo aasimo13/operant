@@ -6,6 +6,8 @@ import type { NarrationSource } from './source';
 export type NarrationInput = TickSituation & {
   readonly tick: number;
   readonly position: GridPosition;
+  /** A qualitative memory of the Sim's life it may draw on this tick. */
+  readonly memory?: string;
 };
 
 export interface NarratorOptions {
@@ -57,7 +59,7 @@ export class Narrator {
 
     const trigger = selectTrigger(input, this.ticksSinceLast, this.fallbackTicks);
     if (!trigger) return;
-    this.fire(trigger, input.tick, input.position);
+    this.fire(trigger, input.tick, input.position, input.memory);
   }
 
   /**
@@ -65,18 +67,23 @@ export class Narrator {
    * bypassing the cooldown — such moments are always worth a line. Still
    * respects the busy guard so it never overlaps an in-flight line.
    */
-  announce(trigger: NarrationTrigger, tick: number, position: GridPosition): void {
+  announce(trigger: NarrationTrigger, tick: number, position: GridPosition, memory?: string): void {
     if (this.busy) return;
-    this.fire(trigger, tick, position);
+    this.fire(trigger, tick, position, memory);
   }
 
-  private fire(trigger: NarrationTrigger, tick: number, position: GridPosition): void {
+  private fire(
+    trigger: NarrationTrigger,
+    tick: number,
+    position: GridPosition,
+    memory?: string,
+  ): void {
     this.busy = true;
     this.hasNarrated = true;
     this.ticksSinceLast = 0;
 
     void this.source
-      .generate({ trigger, tick, position })
+      .generate({ trigger, tick, position, ...(memory !== undefined ? { memory } : {}) })
       .then((text) => {
         if (text) this.onLine({ tick, text });
       })

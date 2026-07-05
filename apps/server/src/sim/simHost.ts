@@ -34,6 +34,7 @@ import {
 import { initialSimState, loadOrInitializeSim, type SimStore } from '../persistence/simStore';
 import type { PersistedSimState } from '../persistence/types';
 import { Narrator } from '../narrator/narrator';
+import { chronicleToMemory } from '../narrator/chronicleMemory';
 import type { NarrationSource } from '../narrator/source';
 import { CannedNarrationSource } from '../narrator/cannedSource';
 import { createNarrationSource } from '../narrator/narrationFactory';
@@ -262,6 +263,7 @@ export class SimHost {
       reachedGoal: record.reachedGoal,
       intervened: inputs.intervened,
       providence: inputs.providence,
+      memory: chronicleToMemory(this.chronicle),
     });
 
     return record;
@@ -386,7 +388,12 @@ export class SimHost {
     this.currentDesign = design;
     // The Sim has been made to live another world — record it, and tell everyone.
     this.chronicle = enterWorld(this.chronicle, name, this.engine.tickCount);
-    this.narrator.announce('constructChanged', this.engine.tickCount, this.engine.position);
+    this.narrator.announce(
+      'constructChanged',
+      this.engine.tickCount,
+      this.engine.position,
+      chronicleToMemory(this.chronicle),
+    );
     this.broadcast(buildTransition(this.engine, wearBreakdown(this.wearState), name));
     this.broadcast(buildChronicle(this.chronicle));
   }
