@@ -76,5 +76,11 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node } },
   },
 
+  // The e2e browser mock is a plain script that runs inside the page.
+  {
+    files: ['apps/client/e2e/**/*.js'],
+    languageOptions: { globals: { ...globals.browser }, sourceType: 'script' },
+  },
+
   prettier,
 );

@@ -24,3 +24,8 @@ coverage/
 
 # Vercel
 .vercel/
+
+# Playwright e2e artifacts
+apps/client/test-results/
+apps/client/playwright-report/
+apps/client/blob-report/
