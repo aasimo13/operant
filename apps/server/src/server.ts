@@ -12,9 +12,17 @@ import { buildHealthPayload } from './health';
  */
 export function createSimHostServer(): Server {
   return createServer((req, res) => {
-    if (req.method === 'GET' && req.url === '/health') {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify(buildHealthPayload()));
+    // Answer both GET and HEAD on /health: uptime monitors (UptimeRobot et al.)
+    // probe with HEAD by default, so a GET-only handler reads as "down" even
+    // while the host is perfectly alive. HEAD returns the same headers as GET
+    // (including Content-Length) but no body, per the HTTP spec.
+    if (req.url === '/health' && (req.method === 'GET' || req.method === 'HEAD')) {
+      const body = JSON.stringify(buildHealthPayload());
+      res.writeHead(200, {
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(body),
+      });
+      res.end(req.method === 'HEAD' ? undefined : body);
       return;
     }
 

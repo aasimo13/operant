@@ -29,6 +29,13 @@ describe('simulation host server', () => {
     });
   });
 
+  it('answers a HEAD /health with 200 and no body (uptime monitors probe with HEAD)', async () => {
+    const res = await fetch(`${baseUrl}/health`, { method: 'HEAD' });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('application/json');
+    expect(await res.text()).toBe(''); // HEAD carries no body
+  });
+
   it('returns 404 for unknown routes', async () => {
     const res = await fetch(`${baseUrl}/nope`);
     expect(res.status).toBe(404);
