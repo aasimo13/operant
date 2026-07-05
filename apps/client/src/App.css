@@ -219,6 +219,43 @@
   font-size: 0.7rem;
 }
 
+/* Sound toggle — opt into the synthesized soundscape. Bottom-right, out of the way. */
+.sound-toggle {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8b93ac;
+  background: rgba(12, 18, 34, 0.6);
+  border: 1px solid rgba(120, 150, 220, 0.22);
+  border-radius: 2px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.sound-toggle[aria-pressed='true'] {
+  color: #eef1fa;
+  border-color: #6b8cff;
+  background: rgba(43, 108, 255, 0.18);
+}
+
+.sound-toggle:hover {
+  color: #eaf0ff;
+  border-color: rgba(120, 150, 220, 0.55);
+}
+
+.sound-toggle:focus-visible {
+  outline: 2px solid #6b8cff;
+  outline-offset: 2px;
+}
+
 /* Queue — the current world + Observer-authored worlds to come, top-left under the HUD. */
 .queue {
   position: absolute;

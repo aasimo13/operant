@@ -15,6 +15,8 @@ import { RelocateControls } from './ui/RelocateControls';
 import { QueuePanel } from './ui/QueuePanel';
 import { MazeEditor } from './ui/MazeEditor';
 import { ChroniclePanel } from './ui/ChroniclePanel';
+import { SoundToggle } from './ui/SoundToggle';
+import { useSoundscape } from './audio/useSoundscape';
 import type { ConstructDesign } from '@operant/core';
 import './App.css';
 
@@ -67,6 +69,14 @@ export function App(): React.JSX.Element {
   // Providence — so you feel the others, not just your own hand.
   const pulse = state.providencePulse;
 
+  // The synthesized soundscape (opt-in): a drone that strains with wear, plus
+  // cues on Providence and wall-bumps.
+  const sound = useSoundscape({
+    wear: state.sim?.wear.wear ?? 0,
+    providencePulse: state.providencePulse,
+    lastRecord: state.lastRecord,
+  });
+
   // While in god view, poll the host for the value-landscape heatmap. It only
   // costs bandwidth when someone is actually looking at it.
   useEffect(() => {
@@ -104,6 +114,7 @@ export function App(): React.JSX.Element {
       <ProvidenceControls onReward={reward} onPunish={punish} />
       <RelocateControls currentConstructId={state.construct?.id ?? 'first'} onRelocate={relocate} />
       <ViewControls mode={cameraMode} fov={fov} onModeChange={setCameraMode} onFovChange={setFov} />
+      <SoundToggle on={sound.on} onToggle={sound.toggle} />
       <QueuePanel
         currentName={state.construct?.name ?? null}
         queue={state.queue}
