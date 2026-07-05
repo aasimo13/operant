@@ -1,0 +1,69 @@
+name: Deploy client to aaronsimo.com/operant
+
+# Publishes the built Observer client into the personal-site repo
+# (aasimo13/aaronsimo.com) under /operant/, so the piece stays live at
+# https://aaronsimo.com/operant on every push to main. This is a SEPARATE,
+# additive deploy from pages.yml (which still mirrors to aasimo13.github.io):
+# it only ever touches the /operant/ folder of the site repo, never the rest
+# of the site.
+#
+# Requires a repository secret named SITE_DEPLOY_TOKEN: a fine-grained personal
+# access token with Contents: Read and write on the aasimo13/aaronsimo.com repo.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One site deploy at a time; a newer push supersedes an in-flight one.
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+env:
+  SITE_REPO: aasimo13/aaronsimo.com
+
+jobs:
+  deploy-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build client
+        run: pnpm --filter @operant/client build
+        env:
+          VITE_SIM_WS_URL: wss://operant-host-production.up.railway.app
+          VITE_BASE: /operant/
+
+      - name: Publish /operant into the site repo
+        env:
+          TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TOKEN}" ]; then
+            echo "::error::SITE_DEPLOY_TOKEN is not set — add it in the Operant repo's Actions secrets."
+            exit 1
+          fi
+          git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/${SITE_REPO}.git" site
+          # Replace ONLY the /operant folder; everything else in the site is left alone.
+          rm -rf site/operant
+          mkdir -p site/operant
+          cp -R apps/client/dist/. site/operant/
+          # Serve build assets verbatim (idempotent; harmless if already present).
+          touch site/.nojekyll
+          cd site
+          git config user.name "operant-deploy[bot]"
+          git config user.email "operant-deploy@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to the /operant build — nothing to publish."
+            exit 0
+          fi
+          git commit -m "Deploy Operant client @ ${GITHUB_SHA::7}"
+          git push origin HEAD:main
