@@ -53,16 +53,32 @@ describe('SimHost.tick', () => {
     const { host } = makeHost();
     const received: ServerMessage[] = [];
     const unsubscribe = host.subscribe((m) => received.push(m));
+    const ticks = () => received.filter((m) => m.type === 'tick');
 
     const record = await host.tick();
-    expect(received).toHaveLength(1);
-    const first = received[0]!;
-    expect(first.type).toBe('tick');
+    expect(ticks()).toHaveLength(1);
+    const first = ticks()[0]!;
     if (first.type === 'tick') expect(first.record).toEqual(record);
 
     unsubscribe();
     await host.tick();
-    expect(received).toHaveLength(1); // no more after unsubscribe
+    expect(ticks()).toHaveLength(1); // no more ticks after unsubscribe
+  });
+
+  it('announces presence as Observers connect and disconnect', () => {
+    const { host } = makeHost();
+    const seen: number[] = [];
+    const a = host.subscribe((m) => {
+      if (m.type === 'presence') seen.push(m.watching);
+    });
+    expect(host.watching()).toBe(1);
+    const b = host.subscribe(() => {});
+    // a saw its own join (1) and b's join (2); it is removed before its own
+    // leave broadcast, so it never sees that one.
+    a();
+    b();
+    expect(seen).toEqual([1, 2]);
+    expect(host.watching()).toBe(0);
   });
 });
 

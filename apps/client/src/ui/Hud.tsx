@@ -9,9 +9,11 @@
 export interface HudProps {
   readonly connected?: boolean;
   readonly tickCount?: number | null;
+  /** How many Observers (including this one) are watching right now. */
+  readonly watching?: number;
 }
 
-export function Hud({ connected, tickCount }: HudProps = {}): React.JSX.Element {
+export function Hud({ connected, tickCount, watching }: HudProps = {}): React.JSX.Element {
   return (
     <div className="hud" aria-label="Operant instrument overlay">
       <h1 className="hud__wordmark">Operant</h1>
@@ -19,6 +21,9 @@ export function Hud({ connected, tickCount }: HudProps = {}): React.JSX.Element 
         {connected ? 'Substrate online' : 'Connecting to the Substrate…'}
         {tickCount !== null && tickCount !== undefined
           ? ` · cycle ${tickCount.toLocaleString()}`
+          : ''}
+        {connected && watching !== undefined
+          ? ` · ${watching === 1 ? 'you alone are watching' : `${watching.toLocaleString()} watching`}`
           : ''}
       </p>
     </div>

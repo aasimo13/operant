@@ -7,6 +7,7 @@ import type {
   ConstructView,
   HeatmapMessage,
   NarrationLine,
+  PresenceMessage,
   QueueMessage,
   SimEngine,
   SimStateView,
@@ -40,6 +41,7 @@ export type {
   TransitionMessage,
   QueueMessage,
   ChronicleMessage,
+  PresenceMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,
@@ -88,6 +90,7 @@ export function buildWelcome(
   name: string,
   queue: string[],
   chronicle: Chronicle,
+  watching: number,
 ): WelcomeMessage {
   return {
     type: 'welcome',
@@ -97,7 +100,12 @@ export function buildWelcome(
     transcript,
     queue,
     chronicle,
+    watching,
   };
+}
+
+export function buildPresence(watching: number): PresenceMessage {
+  return { type: 'presence', watching };
 }
 
 export function buildQueue(names: string[]): QueueMessage {
@@ -112,8 +120,9 @@ export function buildTickMessage(
   engine: SimEngine,
   wear: WearBreakdown,
   record: TickRecord,
+  providence: 'reward' | 'punish' | null = null,
 ): TickMessage {
-  return { type: 'tick', state: buildStateView(engine, wear), record };
+  return { type: 'tick', state: buildStateView(engine, wear), record, providence };
 }
 
 export function buildHeatmap(engine: SimEngine): HeatmapMessage {

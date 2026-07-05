@@ -63,6 +63,10 @@ export function App(): React.JSX.Element {
     prevConstructId.current = id;
   }, [state.construct?.id]);
 
+  // A warm/cold pulse at the edges whenever ANY Observer reaches in with
+  // Providence — so you feel the others, not just your own hand.
+  const pulse = state.providencePulse;
+
   // While in god view, poll the host for the value-landscape heatmap. It only
   // costs bandwidth when someone is actually looking at it.
   useEffect(() => {
@@ -91,7 +95,11 @@ export function App(): React.JSX.Element {
           onIntervene={intervene}
         />
       </Canvas>
-      <Hud connected={connected} tickCount={state.sim?.tickCount ?? null} />
+      <Hud
+        connected={connected}
+        tickCount={state.sim?.tickCount ?? null}
+        watching={state.watching}
+      />
       <TranscriptPanel lines={state.transcript} />
       <ProvidenceControls onReward={reward} onPunish={punish} />
       <RelocateControls currentConstructId={state.construct?.id ?? 'first'} onRelocate={relocate} />
@@ -108,6 +116,13 @@ export function App(): React.JSX.Element {
       )}
       {import.meta.env.DEV && state.sim && <WearDebug wear={state.sim.wear} />}
       {flashKey > 0 && <div key={flashKey} className="transition-flash" aria-hidden="true" />}
+      {pulse && (
+        <div
+          key={pulse.seq}
+          className={`providence-pulse providence-pulse--${pulse.kind}`}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 }

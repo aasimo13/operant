@@ -65,6 +65,7 @@ export type {
   TransitionMessage,
   QueueMessage,
   ChronicleMessage,
+  PresenceMessage,
   ServerMessage,
   ProvidenceMessage,
   InterveneMessage,

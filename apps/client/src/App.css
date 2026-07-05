@@ -618,6 +618,37 @@
   outline-offset: 2px;
 }
 
+/* Providence felt — a brief edge vignette when any Observer rewards/punishes.
+   Warm gold for reward, cold indigo for punishment. Presentation only. */
+.providence-pulse {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  opacity: 0;
+  animation: providence-pulse 1.4s ease-out forwards;
+}
+
+.providence-pulse--reward {
+  box-shadow: inset 0 0 22vmin 6vmin rgba(255, 196, 92, 0.55);
+}
+
+.providence-pulse--punish {
+  box-shadow: inset 0 0 22vmin 6vmin rgba(74, 96, 200, 0.6);
+}
+
+@keyframes providence-pulse {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* The world reconfigures — a brief luminous flash on a Construct transition. */
 .transition-flash {
   position: fixed;

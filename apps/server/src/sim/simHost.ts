@@ -21,6 +21,7 @@ import {
 import {
   buildChronicle,
   buildHeatmap,
+  buildPresence,
   buildQueue,
   buildTickMessage,
   buildTransition,
@@ -158,7 +159,16 @@ export class SimHost {
   /** Subscribe to broadcasts (ticks and narration). Returns an unsubscribe function. */
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    this.broadcast(buildPresence(this.listeners.size)); // one more is watching
+    return () => {
+      this.listeners.delete(listener);
+      this.broadcast(buildPresence(this.listeners.size)); // one fewer
+    };
+  }
+
+  /** How many Observers are currently watching. */
+  watching(): number {
+    return this.listeners.size;
   }
 
   /** The bounded window of recent tick records (oldest first). */
@@ -181,6 +191,7 @@ export class SimHost {
       this.currentName,
       this.queueNames(),
       this.chronicle,
+      this.listeners.size,
     );
   }
 
@@ -233,7 +244,9 @@ export class SimHost {
     // On a transition the client already got the new world + state; the normal
     // tick frame would describe the now-replaced engine, so skip it.
     if (!transitioned) {
-      this.broadcast(buildTickMessage(this.engine, wearBreakdown(this.wearState), record));
+      this.broadcast(
+        buildTickMessage(this.engine, wearBreakdown(this.wearState), record, inputs.providence),
+      );
     }
     // The Chronicle changes slowly; broadcast it on a cadence, not every tick.
     // (A world entry broadcasts it immediately via enterConstruct.)

@@ -31,6 +31,17 @@ function messageStream(socket: WebSocket) {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Pull messages until one of the wanted type arrives (skips presence pulses etc.). */
+async function nextOfType(
+  next: () => Promise<ServerMessage>,
+  type: ServerMessage['type'],
+): Promise<ServerMessage> {
+  for (;;) {
+    const m = await next();
+    if (m.type === type) return m;
+  }
+}
+
 describe('attachWsServer (integration)', () => {
   let httpServer: Server;
   let host: SimHost;
@@ -65,11 +76,11 @@ describe('attachWsServer (integration)', () => {
     const next = messageStream(client);
     await new Promise((resolve) => client.on('open', resolve));
 
-    const welcome = await next();
+    const welcome = await nextOfType(next, 'welcome');
     expect(welcome.type).toBe('welcome');
 
     await host.tick();
-    const tick = await next();
+    const tick = await nextOfType(next, 'tick');
     expect(tick.type).toBe('tick');
 
     client.close();
@@ -79,13 +90,13 @@ describe('attachWsServer (integration)', () => {
     const client = new WebSocket(url);
     const next = messageStream(client);
     await new Promise((resolve) => client.on('open', resolve));
-    await next(); // welcome
+    await nextOfType(next, 'welcome');
 
     client.send(JSON.stringify({ type: 'intervene', position: { x: 0, y: 5 } }));
     await delay(50); // let the server receive + enqueue
 
     await host.tick();
-    const tick = await next();
+    const tick = await nextOfType(next, 'tick');
     expect(tick.type).toBe('tick');
     if (tick.type === 'tick') {
       expect(tick.record.from).toEqual({ x: 0, y: 5 }); // the Sim decided from where it was dropped
@@ -97,10 +108,10 @@ describe('attachWsServer (integration)', () => {
     const client = new WebSocket(url);
     const next = messageStream(client);
     await new Promise((resolve) => client.on('open', resolve));
-    await next(); // welcome
+    await nextOfType(next, 'welcome');
 
     client.send(JSON.stringify({ type: 'requestHeatmap' }));
-    const reply = await next();
+    const reply = await nextOfType(next, 'heatmap');
     expect(reply.type).toBe('heatmap');
     if (reply.type === 'heatmap') {
       expect(reply.values.length).toBeGreaterThan(0);
@@ -112,13 +123,13 @@ describe('attachWsServer (integration)', () => {
     const client = new WebSocket(url);
     const next = messageStream(client);
     await new Promise((resolve) => client.on('open', resolve));
-    await next(); // welcome
+    await nextOfType(next, 'welcome');
 
     client.send('garbage, not json');
     await delay(30);
 
     await host.tick();
-    const tick = await next();
+    const tick = await nextOfType(next, 'tick');
     expect(tick.type).toBe('tick'); // still alive and ticking
     client.close();
   });

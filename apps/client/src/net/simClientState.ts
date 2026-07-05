@@ -27,6 +27,10 @@ export interface SimClientState {
   readonly queue: string[];
   /** The Sim's accumulated life history, or null until the first message. */
   readonly chronicle: Chronicle | null;
+  /** How many Observers are watching right now. */
+  readonly watching: number;
+  /** Latest Providence felt by anyone; `seq` bumps each time so watchers can pulse. */
+  readonly providencePulse: { readonly kind: 'reward' | 'punish'; readonly seq: number } | null;
 }
 
 export const initialClientState: SimClientState = {
@@ -38,6 +42,8 @@ export const initialClientState: SimClientState = {
   transcript: [],
   queue: [],
   chronicle: null,
+  watching: 1,
+  providencePulse: null,
 };
 
 /** Pure reducer: fold a server message into the client state. */
@@ -53,17 +59,24 @@ export function applyServerMessage(state: SimClientState, message: ServerMessage
         transcript: message.transcript.slice(-TRANSCRIPT_LIMIT),
         queue: message.queue ?? [], // tolerate an older host that predates the queue
         chronicle: message.chronicle ?? null,
+        watching: message.watching ?? 1,
+        providencePulse: state.providencePulse, // keep any in-flight pulse across reconnect
       };
     case 'queue':
       return { ...state, queue: message.names };
     case 'chronicle':
       return { ...state, chronicle: message.chronicle };
+    case 'presence':
+      return { ...state, watching: message.watching };
     case 'tick':
       return {
         ...state,
         sim: message.state,
         lastRecord: message.record,
         recent: [...state.recent, message.record].slice(-RECENT_LIMIT),
+        providencePulse: message.providence
+          ? { kind: message.providence, seq: (state.providencePulse?.seq ?? 0) + 1 }
+          : state.providencePulse,
       };
     case 'heatmap':
       return { ...state, heatmap: message.values };

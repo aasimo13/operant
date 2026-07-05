@@ -39,6 +39,7 @@ const welcome: WelcomeMessage = {
   transcript: [{ tick: 2, text: 'a first thought' }],
   queue: [],
   chronicle: emptyChronicle('The First Construct'),
+  watching: 2,
 };
 
 describe('applyServerMessage', () => {
@@ -171,6 +172,33 @@ describe('applyServerMessage', () => {
     s = applyServerMessage(s, { type: 'chronicle', chronicle: grown });
     expect(s.chronicle?.goalsReached).toBe(42);
     expect(s.chronicle?.worldsEndured).toBe(3);
+  });
+
+  it('tracks the watcher count and pulses on felt Providence', () => {
+    let s = applyServerMessage(initialClientState, welcome);
+    expect(s.watching).toBe(2);
+    s = applyServerMessage(s, { type: 'presence', watching: 7 });
+    expect(s.watching).toBe(7);
+
+    // A tick carrying Providence bumps the pulse seq; a plain tick doesn't.
+    const tickWith = (providence: 'reward' | 'punish' | null): TickMessage => ({
+      type: 'tick',
+      state: {
+        position: { x: 1, y: 0 },
+        goal: { x: 1, y: 0 },
+        tickCount: 9,
+        epsilon: 0.1,
+        wear: WEAR0,
+      },
+      record: record(9),
+      providence,
+    });
+    s = applyServerMessage(s, tickWith('punish'));
+    expect(s.providencePulse).toEqual({ kind: 'punish', seq: 1 });
+    s = applyServerMessage(s, tickWith(null));
+    expect(s.providencePulse).toEqual({ kind: 'punish', seq: 1 }); // unchanged
+    s = applyServerMessage(s, tickWith('reward'));
+    expect(s.providencePulse).toEqual({ kind: 'reward', seq: 2 });
   });
 
   it('clears any stale heatmap on a fresh welcome (reconnect)', () => {

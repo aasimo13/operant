@@ -55,7 +55,7 @@ describe('buildWelcome', () => {
     const r1 = e.tick();
     const transcript = [{ tick: 1, text: 'a wall' }];
     const chronicle = emptyChronicle('A View');
-    const welcome = buildWelcome(e, wear, [r1], transcript, 'A View', ['Next World'], chronicle);
+    const welcome = buildWelcome(e, wear, [r1], transcript, 'A View', ['Next World'], chronicle, 3);
     expect(welcome.type).toBe('welcome');
     expect(welcome.construct.id).toBe('view');
     expect(welcome.construct.name).toBe('A View');
@@ -64,6 +64,7 @@ describe('buildWelcome', () => {
     expect(welcome.transcript).toEqual(transcript);
     expect(welcome.queue).toEqual(['Next World']);
     expect(welcome.chronicle).toBe(chronicle);
+    expect(welcome.watching).toBe(3);
   });
 });
 

@@ -54,6 +54,8 @@ export interface WelcomeMessage {
   readonly queue: string[];
   /** The Sim's accumulated life history. */
   readonly chronicle: Chronicle;
+  /** How many Observers are watching right now (including this one). */
+  readonly watching: number;
 }
 
 /** The queue of Observer-authored worlds changed (submitted, or one drained in). */
@@ -72,6 +74,15 @@ export interface TickMessage {
   readonly type: 'tick';
   readonly state: SimStateView;
   readonly record: TickRecord;
+  /** If an Observer reached in with Providence this tick, which — so every
+   *  watcher can *feel* the hand, not just the one who moved it. */
+  readonly providence?: 'reward' | 'punish' | null;
+}
+
+/** How many Observers are watching the Sim right now. */
+export interface PresenceMessage {
+  readonly type: 'presence';
+  readonly watching: number;
 }
 
 /**
@@ -108,7 +119,8 @@ export type ServerMessage =
   | NarrationMessage
   | TransitionMessage
   | QueueMessage
-  | ChronicleMessage;
+  | ChronicleMessage
+  | PresenceMessage;
 
 // ─── client → server ─────────────────────────────────────────────────────────
 
